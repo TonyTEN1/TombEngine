@@ -1,24 +1,25 @@
 #include "framework.h"
-#include "tr5_ghost.h"
-#include "Game/items.h"
+#include "Objects/TR5/Entity/tr5_ghost.h"
+
 #include "Game/control/box.h"
 #include "Game/effects/effects.h"
-#include "Specific/setup.h"
-#include "Specific/level.h"
+#include "Game/itemdata/creature_info.h"
+#include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
+#include "Game/Setup.h"
 #include "Sound/sound.h"
-#include "Game/itemdata/creature_info.h"
+#include "Specific/level.h"
 
 namespace TEN::Entities::Creatures::TR5
 {
-	const auto InvisibleGhostBite = BiteInfo(Vector3::Zero, 17);
+	const auto InvisibleGhostBite = CreatureBiteInfo(Vector3i::Zero, 17);
 
-	void InitialiseInvisibleGhost(short itemNumber)
+	void InitializeInvisibleGhost(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 		SetAnimation(item, 0);
 		item->Pose.Position.y += CLICK(2);
 	}
@@ -80,7 +81,7 @@ namespace TEN::Entities::Creatures::TR5
 			item->Animation.ActiveState <= 3 &&
 			!creature->Flags &&
 			item->TouchBits & 0x9470 &&
-			item->Animation.FrameNumber > g_Level.Anims[item->Animation.AnimNumber].frameBase + 18)
+			item->Animation.FrameNumber > GetAnimData(item).frameBase + 18)
 		{
 			DoDamage(creature->Enemy, 400);
 			CreatureEffect2(item, InvisibleGhostBite, 10, item->Pose.Orientation.y, DoBloodSplat);

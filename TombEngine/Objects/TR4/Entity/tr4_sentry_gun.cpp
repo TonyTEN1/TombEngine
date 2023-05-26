@@ -11,23 +11,23 @@
 #include "Game/items.h"
 #include "Game/misc.h"
 #include "Game/people.h"
+#include "Math/Math.h"
 #include "Objects/objectslist.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
-#include "Math/Math.h"
 
 using namespace TEN::Gui;
 
 namespace TEN::Entities::TR4
 {
 	const auto SentryGunFlameOffset = Vector3i(-140, 0, 0);
-	const auto SentryGunBite = BiteInfo(Vector3::Zero, 8);
+	const auto SentryGunBite = CreatureBiteInfo(Vector3i::Zero, 8);
 
-	void InitialiseSentryGun(short itemNumber)
+	void InitializeSentryGun(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 		item->ItemFlags[0] = 0;
 		item->ItemFlags[1] = 768;
 		item->ItemFlags[2] = 0;
@@ -51,7 +51,7 @@ namespace TEN::Entities::TR4
 		{
 			if (item->ItemFlags[0])
 			{
-				auto pos = GetJointPosition(item, SentryGunBite.meshNum, Vector3i(SentryGunBite.Position));
+				auto pos = GetJointPosition(item, SentryGunBite);
 				TriggerDynamicLight(pos.x, pos.y, pos.z, 4 * item->ItemFlags[0] + 12, 24, 16, 4);
 				item->ItemFlags[0]--;
 			}
@@ -65,7 +65,7 @@ namespace TEN::Entities::TR4
 			{
 				item->Pose.Position.y -= CLICK(2);
 
-				AI_INFO AI;;
+				AI_INFO AI;
 				CreatureAIInfo(item, &AI);
 
 				item->Pose.Position.y += CLICK(2);

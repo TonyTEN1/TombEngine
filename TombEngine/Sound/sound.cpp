@@ -3,11 +3,12 @@
 
 #include <filesystem>
 #include <regex>
+
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
-#include "Specific/setup.h"
+#include "Game/Setup.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/winmain.h"
@@ -28,7 +29,8 @@ const BASS_BFX_FREEVERB BASS_ReverbTypes[(int)ReverbType::Count] =    // Reverb 
   {  1.0f,     0.25f,     0.90f,    1.00f,    1.0f,     0,      -1     }	// 4 = Pipe
 };
 
-const std::string TRACKS_PATH = "Audio\\";
+const  std::string TRACKS_PATH = "Audio/";
+static std::string FullAudioDirectory;
 
 std::map<std::string, int> SoundTrackMap;
 std::unordered_map<int, SoundTrackInfo> SoundTracks;
@@ -135,7 +137,7 @@ bool LoadSample(char* pointer, int compSize, int uncompSize, int index)
 
 	// Create actual sample
 	SamplePointer[index] = BASS_SampleLoad(true, uncompBuffer, 0, cleanLength + 44, 65535, SOUND_SAMPLE_FLAGS | BASS_SAMPLE_3D);
-	delete uncompBuffer;
+	delete[] uncompBuffer;
 
 	return true;
 }
@@ -195,7 +197,7 @@ bool SoundEffect(int effectID, Pose* position, SoundEnvironment condition, float
 		sampleFlags |= BASS_SAMPLE_3D;
 
 	// Set & randomize volume (if needed)
-	float gain = (static_cast<float>(sampleInfo->Volume) / UCHAR_MAX) * std::clamp(gainMultiplier, SOUND_MIN_PARAM_MULTIPLIER, SOUND_MAX_PARAM_MULTIPLIER);;
+	float gain = (static_cast<float>(sampleInfo->Volume) / UCHAR_MAX) * std::clamp(gainMultiplier, SOUND_MIN_PARAM_MULTIPLIER, SOUND_MAX_PARAM_MULTIPLIER);
 	if ((sampleInfo->Flags & SOUND_FLAG_RND_GAIN))
 		gain -= (static_cast<float>(GetRandomControl()) / static_cast<float>(RAND_MAX))* SOUND_MAX_GAIN_CHANGE;
 
@@ -337,16 +339,18 @@ void FreeSamples()
 
 void EnumerateLegacyTracks()
 {
-	auto dir = std::filesystem::path(TRACKS_PATH);
+	auto dir = std::filesystem::path{ FullAudioDirectory };
 	if (std::filesystem::exists(dir))
 	{
-		try {
-			// capture three-digit filenames, or those which start with three digits.
-			std::regex upToThreeDigits("\\\\((\\d{1,3})[^\\.]*)");
+		try 
+		{
+			// Capture three-digit filenames, or those which start with three digits.
+
+			std::regex upToThreeDigits("((\\d{1,3})[^\\.]*)");
 			std::smatch result;
 			for (const auto& file : std::filesystem::directory_iterator{ dir })
 			{
-				std::string fileName = file.path().string();
+				std::string fileName = file.path().filename().string();
 				auto bResult = std::regex_search(fileName, result, upToThreeDigits);
 				if (!result.empty())
 				{
@@ -407,13 +411,13 @@ void PlaySoundTrack(std::string track, SoundTrackType mode, QWORD position)
 		break;
 	}
 
-	auto fullTrackName = TRACKS_PATH + track + ".ogg";
+	auto fullTrackName = FullAudioDirectory + track + ".ogg";
 	if (!std::filesystem::exists(fullTrackName))
 	{
-		fullTrackName = TRACKS_PATH + track + ".mp3";
+		fullTrackName = FullAudioDirectory + track + ".mp3";
 		if (!std::filesystem::exists(fullTrackName))
 		{
-			fullTrackName = TRACKS_PATH + track + ".wav";
+			fullTrackName = FullAudioDirectory + track + ".wav";
 			if (!std::filesystem::exists(fullTrackName))
 			{
 				TENLog("No soundtrack files with name '" + track + "' were found", LogLevel::Warning);
@@ -628,12 +632,25 @@ int Sound_EffectIsPlaying(int effectID, Pose *position)
 	return -1;
 }
 
+bool IsSoundEffectPlaying(int effectID)
+{
+	int channelIndex = Sound_EffectIsPlaying(effectID, nullptr);
+
+	if (channelIndex == -1)
+		return false;
+
+	return (SoundSlot[channelIndex].EffectID == effectID);
+}
+
 // Gets the distance to the source.
 
 float Sound_DistanceToListener(Pose *position)
 {
-	if (!position) return 0.0f;	// Assume sound is 2D menu sound
-	return Sound_DistanceToListener(Vector3(position->Position.x, position->Position.y, position->Position.z));
+	// Assume sound is 2D menu sound.
+	if (!position)
+		return 0.0f;
+
+	return Sound_DistanceToListener(position->Position.ToVector3());
 }
 float Sound_DistanceToListener(Vector3 position)
 {
@@ -778,9 +795,9 @@ void Sound_UpdateScene()
 		Camera.mikePos.y,
 		Camera.mikePos.z);
 	auto laraVel = BASS_3DVECTOR(					// Vel
-		Lara.WaterCurrentPull.x,
-		Lara.WaterCurrentPull.y,
-		Lara.WaterCurrentPull.z);
+		Lara.Context.WaterCurrentPull.x,
+		Lara.Context.WaterCurrentPull.y,
+		Lara.Context.WaterCurrentPull.z);
 	auto atVec = BASS_3DVECTOR(at.x, at.y, at.z);	// At
 	auto upVec = BASS_3DVECTOR(0.0f, 1.0f, 0.0f);	// Up
 	BASS_Set3DPosition(&mikePos,
@@ -790,11 +807,15 @@ void Sound_UpdateScene()
 	BASS_Apply3D();
 }
 
-// Initialise BASS engine and also prepare all sound data.
+// Initialize BASS engine and also prepare all sound data.
 // Called once on engine start-up.
 
-void Sound_Init()
+void Sound_Init(const std::string& gameDirectory)
 {
+	// Initialize and collect soundtrack paths.
+	FullAudioDirectory = gameDirectory + TRACKS_PATH;
+	EnumerateLegacyTracks();
+
 	if (!g_Configuration.EnableSound)
 		return;
 
@@ -802,7 +823,7 @@ void Sound_Init()
 	if (Sound_CheckBASSError("Initializing BASS sound device", true))
 		return;
 
-	// Initialise BASS_FX plugin
+	// Initialize BASS_FX plugin.
 	BASS_FX_GetVersion();
 	if (Sound_CheckBASSError("Initializing FX plugin", true))
 		return;
@@ -829,7 +850,7 @@ void Sound_Init()
 	if (Sound_CheckBASSError("Starting 3D mixdown", true))
 		return;
 
-	// Initialise channels and tracks array
+	// Initialize channels and tracks array
 	ZeroMemory(BASS_Soundtrack, (sizeof(HSTREAM) * (int)SoundTrackType::Count));
 	ZeroMemory(SoundSlot, (sizeof(SoundEffectSlot) * SOUND_MAX_CHANNELS));
 
@@ -882,7 +903,7 @@ bool Sound_CheckBASSError(const char* message, bool verbose, ...)
 
 void SayNo()
 {
-	SoundEffect(SFX_TR4_LARA_NO_ENGLISH, NULL, SoundEnvironment::Always);
+	SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 }
 
 void PlaySecretTrack()

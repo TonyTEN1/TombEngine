@@ -8,7 +8,7 @@ class EulerAngles;
 	{
 	private:
 		// Components
-		Vector3 Axis  = Vector3::Zero;
+		Vector3 Axis  = Vector3::Backward;
 		short	Angle = 0;
 
 	public:
@@ -16,7 +16,7 @@ class EulerAngles;
 		static const AxisAngle Identity;
 
 		// Constructors
-		AxisAngle();
+		AxisAngle() {};
 		AxisAngle(const Vector3& axis, short angle);
 		AxisAngle(const EulerAngles& eulers);
 		AxisAngle(const Quaternion& quat);
@@ -31,10 +31,12 @@ class EulerAngles;
 		void SetAngle(short angle);
 
 		// Utilities
-		void			 Slerp(const AxisAngle& axisAngleTo, float alpha = 1.0f);
-		static AxisAngle Slerp(const AxisAngle& axisAngleFrom, const AxisAngle& axisAngleTo, float alpha = 1.0f);
+		void			 Slerp(const AxisAngle& axisAngleTo, float alpha);
+		static AxisAngle Slerp(const AxisAngle& axisAngleFrom, const AxisAngle& axisAngleTo, float alpha);
 
 		// Converters
+		Vector3		ToDirection() const;
+		EulerAngles ToEulerAngles() const;
 		Quaternion	ToQuaternion() const;
 		Matrix		ToRotationMatrix() const;
 

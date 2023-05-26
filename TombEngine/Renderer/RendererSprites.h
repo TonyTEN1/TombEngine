@@ -1,5 +1,4 @@
 #pragma once
-#include <SimpleMath.h>
 #include "Renderer/Renderer11Enums.h"
 
 namespace TEN::Renderer
@@ -7,25 +6,34 @@ namespace TEN::Renderer
 	struct RenderView;
 	struct RendererSprite;
 
+	enum SpriteRenderType
+	{
+		Default,
+		LaserBarrier
+	};
+
 	struct RendererSpriteToDraw
 	{
 		RENDERER_SPRITE_TYPE Type;
 		RendererSprite* Sprite;
 		float Scale;
-		DirectX::SimpleMath::Vector3 pos;
-		DirectX::SimpleMath::Vector3 vtx1;
-		DirectX::SimpleMath::Vector3 vtx2;
-		DirectX::SimpleMath::Vector3 vtx3;
-		DirectX::SimpleMath::Vector3 vtx4;
-		DirectX::SimpleMath::Vector4 color;
+		Vector3 pos;
+		Vector3 vtx1;
+		Vector3 vtx2;
+		Vector3 vtx3;
+		Vector3 vtx4;
+		Vector4 c1;
+		Vector4 c2;
+		Vector4 c3;
+		Vector4 c4;
+		Vector4 color;
 		float Rotation;
 		float Width;
 		float Height;
 		BLEND_MODES BlendMode;
-		DirectX::SimpleMath::Vector3 ConstrainAxis;
-		DirectX::SimpleMath::Vector3 LookAtAxis;
+		Vector3 ConstrainAxis;
+		Vector3 LookAtAxis;
 		bool SoftParticle;
+		SpriteRenderType renderType = SpriteRenderType::Default;
 	};
-	
-	using namespace DirectX::SimpleMath;
 }

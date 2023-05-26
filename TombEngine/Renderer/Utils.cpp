@@ -1,12 +1,14 @@
 #include "framework.h"
-#include "Utils.h"
-#include <winerror.h>
-#include <iostream>
-#include <wrl/client.h>
-#include <d3dcompiler.h>
 
-#include <locale>
 #include <codecvt>
+#include <d3dcompiler.h>
+#include <locale>
+#include <iostream>
+#include <winerror.h>
+#include <wrl/client.h>
+
+#include "Renderer/Utils.h"
+#include "Specific/trutils.h"
 
 namespace TEN::Renderer::Utils
 {
@@ -57,9 +59,12 @@ namespace TEN::Renderer::Utils
 				auto error = std::string((char*)errorObj->GetBufferPointer());
 				TENLog(error, LogLevel::Error);
 				throw std::runtime_error(error);
-			}
+			} 
 			else
+			{
+				TENLog("Error while compiling shader: " + TEN::Utils::ToString(fileName.c_str()), LogLevel::Error);
 				throwIfFailed(res);
+			}
 		}
 
 		ComPtr<ID3D11VertexShader> shader;
@@ -68,8 +73,8 @@ namespace TEN::Renderer::Utils
 		if constexpr(DebugBuild)
 		{
 			char buffer[100];
-			size_t sz = std::wcstombs(buffer, fileName.c_str(), 100);
-			shader->SetPrivateData(WKPDID_D3DDebugObjectName, sz, buffer);
+			unsigned int size = (unsigned int)std::wcstombs(buffer, fileName.c_str(), 100);
+			shader->SetPrivateData(WKPDID_D3DDebugObjectName, size, buffer);
 		}
 
 		return shader;
@@ -86,8 +91,8 @@ namespace TEN::Renderer::Utils
 		if constexpr(DebugBuild)
 		{
 			char buffer[100];
-			size_t sz = std::wcstombs(buffer, fileName.c_str(), 100);
-			shader->SetPrivateData(WKPDID_D3DDebugObjectName, sz, buffer);
+			unsigned int size = (unsigned int)std::wcstombs(buffer, fileName.c_str(), 100);
+			shader->SetPrivateData(WKPDID_D3DDebugObjectName, size, buffer);
 		}
 
 		return shader;
@@ -97,10 +102,10 @@ namespace TEN::Renderer::Utils
 	{
 		UINT flags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
 
-		if constexpr(DebugBuild)
+		//if constexpr(DebugBuild)
 			flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-		else
-			flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_IEEE_STRICTNESS;
+		//else
+		//	flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_IEEE_STRICTNESS;
 		
 		return flags;
 	}

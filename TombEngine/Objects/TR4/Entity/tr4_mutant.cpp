@@ -9,20 +9,19 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
+#include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Effects/tr4_locusts.h"
 #include "Objects/objectslist.h"
 #include "Renderer/Renderer11Enums.h"
-#include "Specific/setup.h"
 
 using namespace TEN::Math;
-using namespace TEN::Math::Random;
 
 namespace TEN::Entities::TR4
 {
-	constexpr auto MUTANT_PROJECTILE_ATTACK_RANGE = SQUARE(SECTOR(10));
-	constexpr auto MUTANT_LOCUST_ATTACK_1_RANGE	  = SQUARE(SECTOR(15));
-	constexpr auto MUTANT_LOCUST_ATTACK_2_RANGE   = SQUARE(SECTOR(30));
+	constexpr auto MUTANT_PROJECTILE_ATTACK_RANGE = SQUARE(BLOCK(10));
+	constexpr auto MUTANT_LOCUST_ATTACK_1_RANGE	  = SQUARE(BLOCK(15));
+	constexpr auto MUTANT_LOCUST_ATTACK_2_RANGE   = SQUARE(BLOCK(30));
 
 	enum MutantState
 	{
@@ -124,7 +123,7 @@ namespace TEN::Entities::TR4
 		sptr->flags = SP_EXPDEF | SP_ROTATE | SP_DEF | SP_SCALE;
 		sptr->rotAng = GetRandomControl() & 0xFFF;
 
-		if (TestProbability(0.5f))
+		if (Random::TestProbability(1 / 2.0f))
 			sptr->rotAdd = (GetRandomControl() & 0x1F) - 32;
 		else
 			sptr->rotAdd = (GetRandomControl() & 0x1F) + 32;
@@ -157,7 +156,7 @@ namespace TEN::Entities::TR4
 
 	bool ShootFrame(ItemInfo* item)
 	{
-		int frameNumber = (item->Animation.FrameNumber - g_Level.Anims[item->Animation.AnimNumber].frameBase);
+		int frameNumber = (item->Animation.FrameNumber - GetAnimData(item).frameBase);
 		if (frameNumber == 45 ||
 			/*frameNumber == 50 ||
 			frameNumber == 55 ||*/
@@ -253,13 +252,13 @@ namespace TEN::Entities::TR4
 		MoveItemBack(item, SECTOR(2));
 	}
 
-	void InitialiseCrocgod(short itemNumber)
+	void InitializeCrocgod(short itemNumber)
 	{
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 
 		auto* item = &g_Level.Items[itemNumber];
 		item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + MUTANT_ANIM_APPEAR;
-		item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+		item->Animation.FrameNumber = GetAnimData(item).frameBase;
 		item->Animation.ActiveState = MUTANT_STATE_APPEAR;
 		item->Animation.TargetState = MUTANT_STATE_APPEAR;
 	}
@@ -272,7 +271,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 		auto* creature = GetCreatureInfo(item);
 
-		OBJECT_BONES mutantJoint;
+		auto head = EulerAngles::Zero, torso = EulerAngles::Zero;
 		int frameNumber;
 		short angle = 0;
 		short headY = 0;
@@ -287,7 +286,7 @@ namespace TEN::Entities::TR4
 		AI_INFO AI;
 		MutantAIFix(item, &AI);
 
-		RotateHeadToTarget(item, creature, 9, headY);
+		RotateHeadToTarget(item, creature, 9, head.y);
 		GetCreatureMood(item, &AI, true);
 		CreatureMood(item, &AI, true);
 
@@ -299,18 +298,18 @@ namespace TEN::Entities::TR4
 		case MUTANT_STATE_IDLE:
 			if (AI.ahead)
 			{
-				if (TestProbability(0.28f) && AI.distance <= MUTANT_PROJECTILE_ATTACK_RANGE)
+				if (Random::TestProbability(0.28f) && AI.distance <= MUTANT_PROJECTILE_ATTACK_RANGE)
 					item->Animation.TargetState = MUTANT_STATE_PROJECTILE_ATTACK;
-				else if (TestProbability(0.28f) && AI.distance <= MUTANT_LOCUST_ATTACK_1_RANGE)
+				else if (Random::TestProbability(0.28f) && AI.distance <= MUTANT_LOCUST_ATTACK_1_RANGE)
 					item->Animation.TargetState = MUTANT_STATE_LOCUST_ATTACK_1;
-				else if (TestProbability(0.28f) && AI.distance <= MUTANT_LOCUST_ATTACK_2_RANGE)
+				else if (Random::TestProbability(0.28f) && AI.distance <= MUTANT_LOCUST_ATTACK_2_RANGE)
 					item->Animation.TargetState = MUTANT_STATE_LOCUST_ATTACK_2;
 			}
 
 			break;
 
 		case MUTANT_STATE_PROJECTILE_ATTACK:
-			frameNumber = item->Animation.FrameNumber - g_Level.Anims[item->Animation.AnimNumber].frameBase;
+			frameNumber = item->Animation.FrameNumber - GetAnimData(item).frameBase;
 			if (frameNumber >= 94 && frameNumber <= 96)
 			{
 				Pose src;
@@ -333,7 +332,7 @@ namespace TEN::Entities::TR4
 			break;
 
 		case MUTANT_STATE_LOCUST_ATTACK_1:
-			frameNumber = (item->Animation.FrameNumber - g_Level.Anims[item->Animation.AnimNumber].frameBase);
+			frameNumber = (item->Animation.FrameNumber - GetAnimData(item).frameBase);
 			if (frameNumber >= 60 && frameNumber <= 120)
 				SpawnLocust(item);
 
@@ -351,14 +350,16 @@ namespace TEN::Entities::TR4
 		}
 
 		if (item->Animation.ActiveState != MUTANT_STATE_LOCUST_ATTACK_1)
-			mutantJoint = OBJECT_BONES(headY, AI.xAngle, true);
-		else
-			mutantJoint = OBJECT_BONES(0);
+		{
+			head.x = AI.xAngle;
+			torso.x = AI.xAngle;
+			torso.y = AI.angle;
+		}
 
-		CreatureJoint(item, 0, mutantJoint.bone0);
-		CreatureJoint(item, 1, mutantJoint.bone1);
-		CreatureJoint(item, 2, mutantJoint.bone2);
-		CreatureJoint(item, 3, mutantJoint.bone3);
+		CreatureJoint(item, 0, head.y);
+		CreatureJoint(item, 1, head.x);
+		CreatureJoint(item, 2, torso.y);
+		CreatureJoint(item, 3, torso.x);
 		CreatureAnimation(itemNumber, angle, 0);
 	}
 }

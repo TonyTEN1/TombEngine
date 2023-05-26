@@ -14,16 +14,19 @@
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
 #include "Game/people.h"
+#include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
+#include "Math/Math.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
+
+using namespace TEN::Math;
 
 namespace TEN::Entities::TR4
 {
 	constexpr auto SKELETON_ATTACK_DAMAGE = 80;
 
-	const auto SkeletonBite = BiteInfo(Vector3(0.0f, -16.0f, 200.0f), 11);
+	const auto SkeletonBite = CreatureBiteInfo(Vector3i(0, -16, 200), 11);
 	const auto SkeletonSwordAttackJoints = std::vector<unsigned int>{ 15, 16 };
 
 	enum SkeletonState
@@ -109,10 +112,10 @@ namespace TEN::Entities::TR4
 		SKELETON_ANIM_FALLING = 48
 	};
 
-	void InitialiseSkeleton(short itemNumber)
+	void InitializeSkeleton(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 
 		// OCBs: Check cases 0 to 3.
 		switch (item->TriggerFlags)
@@ -178,10 +181,10 @@ namespace TEN::Entities::TR4
 		spark->flags = 26;
 		spark->rotAng = GetRandomControl() & 0xFFF;
 
-		if (Random::TestProbability(1 / 2.0f))
-			spark->rotAdd = -16 - (GetRandomControl() & 0xF);
-		else
-			spark->rotAdd = (GetRandomControl() & 0xF) + 16;
+			if (Random::TestProbability(1 / 2.0f))
+				spark->rotAdd = -16 - (GetRandomControl() & 0xF);
+			else
+				spark->rotAdd = (GetRandomControl() & 0xF) + 16;
 
 		spark->gravity = -4 - (GetRandomControl() & 3);
 		spark->scalar = 3;
@@ -281,7 +284,7 @@ namespace TEN::Entities::TR4
 				item->Pose.Orientation.y += AI.angle;
 			}
 
-			item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+			item->Animation.FrameNumber = GetAnimData(item).frameBase;
 			creature->LOT.IsJumping = true;
 		}
 		else
@@ -410,7 +413,7 @@ namespace TEN::Entities::TR4
 					else if (canJump1Block || canJump2Blocks)
 					{
 						item->Animation.AnimNumber = Objects[ID_SKELETON].animIndex + 40;
-						item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+						item->Animation.FrameNumber = GetAnimData(item).frameBase;
 						item->Animation.ActiveState = SKELETON_STATE_JUMP_LEFT;
 						creature->MaxTurn = 0;
 
@@ -447,7 +450,7 @@ namespace TEN::Entities::TR4
 							item->AIBits & FOLLOW &&
 							(creature->ReachedGoal || laraAI.distance > SQUARE(BLOCK(2))))
 						{
-							if (item->Animation.RequiredState)
+							if (item->Animation.RequiredState != NO_STATE)
 								item->Animation.TargetState = item->Animation.RequiredState;
 							else if (Random::TestProbability(1 / 64.0f))
 								item->Animation.TargetState = 15;
@@ -455,7 +458,7 @@ namespace TEN::Entities::TR4
 						else if (Lara.TargetEntity == item &&
 							laraAI.angle && laraAI.distance < SQUARE(BLOCK(2)) &&
 							Random::TestProbability(1 / 2.0f) &&
-							(Lara.Control.Weapon.GunType == LaraWeaponType::Shotgun || Random::TestProbability(0.06f)) &&
+							(Lara.Control.Weapon.GunType == LaraWeaponType::Shotgun || Random::TestProbability(3 / 50.0f)) &&
 							item->MeshBits == -1)
 						{
 							item->Animation.TargetState = SKELETON_STATE_USE_SHIELD;
@@ -472,7 +475,7 @@ namespace TEN::Entities::TR4
 							else
 								item->Animation.TargetState = SKELETON_STATE_ATTACK_3;
 						}
-						else if (item->HitStatus || item->Animation.RequiredState)
+						else if (item->HitStatus || item->Animation.RequiredState != NO_STATE)
 						{
 							if (Random::TestProbability(1 / 2.0f))
 							{
@@ -557,7 +560,7 @@ namespace TEN::Entities::TR4
 					if (GetCollision(item).Position.Floor > item->Pose.Position.y + BLOCK(1))
 					{
 						item->Animation.AnimNumber = Objects[ID_SKELETON].animIndex + 44;
-						item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+						item->Animation.FrameNumber = GetAnimData(item).frameBase;
 						item->Animation.ActiveState = 23;
 						item->Animation.IsAirborne = true;
 						creature->MaxTurn = 0;
@@ -632,7 +635,7 @@ namespace TEN::Entities::TR4
 					item->Pose.Orientation.y += AI.angle;
 				}
 
-				if (item->Animation.FrameNumber > (g_Level.Anims[item->Animation.AnimNumber].frameBase + 15))
+				if (item->Animation.FrameNumber > (GetAnimData(item).frameBase + 15))
 				{
 					auto* room = &g_Level.Rooms[item->RoomNumber];
 
@@ -702,7 +705,7 @@ namespace TEN::Entities::TR4
 					if (GetCollision(item).Position.Floor > (item->Pose.Position.y + CLICK(5)))
 					{
 						item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 44;
-						item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+						item->Animation.FrameNumber = GetAnimData(item).frameBase;
 						item->Animation.ActiveState = 23;
 						item->Animation.IsAirborne = true;
 						creature->MaxTurn = 0;
@@ -733,7 +736,7 @@ namespace TEN::Entities::TR4
 			case SKELETON_STATE_RECOIL_BACK:
 				if ((item->Animation.ActiveState == SKELETON_STATE_RECOIL_FRONT ||
 					item->Animation.ActiveState == SKELETON_STATE_RECOIL_BACK) &&
-					item->Animation.FrameNumber < g_Level.Anims[item->Animation.AnimNumber].frameBase + 20)
+					item->Animation.FrameNumber < GetAnimData(item).frameBase + 20)
 				{
 					creature->MaxTurn = 0;
 					break;
@@ -755,7 +758,7 @@ namespace TEN::Entities::TR4
 				else
 				{
 					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 47;
-					item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+					item->Animation.FrameNumber = GetAnimData(item).frameBase;
 					item->Animation.ActiveState = 24;
 					item->Animation.IsAirborne = true;
 					creature->MaxTurn = 0;
@@ -772,7 +775,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case SKELETON_STATE_SUBTERRANEAN:
-				if (item->Animation.FrameNumber - g_Level.Anims[item->Animation.AnimNumber].frameBase < 32)
+				if (item->Animation.FrameNumber - GetAnimData(item).frameBase < 32)
 					TriggerRiseEffect(item);
 				
 				break;

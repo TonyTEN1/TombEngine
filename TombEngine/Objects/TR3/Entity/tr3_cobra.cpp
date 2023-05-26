@@ -9,25 +9,23 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/misc.h"
+#include "Game/Setup.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
-
-using std::vector;
 
 namespace TEN::Entities::Creatures::TR3
 {
 	constexpr auto COBRA_BITE_ATTACK_DAMAGE	 = 80;
 	constexpr auto COBRA_BITE_POISON_POTENCY = 8;
 
-	constexpr auto COBRA_ATTACK_RANGE = SQUARE(SECTOR(1));
-	constexpr auto COBRA_AWARE_RANGE  = SQUARE(SECTOR(1.5f));
-	constexpr auto COBRA_SLEEP_RANGE  = SQUARE(SECTOR(2.5f));
+	constexpr auto COBRA_ATTACK_RANGE = SQUARE(BLOCK(1));
+	constexpr auto COBRA_AWARE_RANGE  = SQUARE(BLOCK(1.5f));
+	constexpr auto COBRA_SLEEP_RANGE  = SQUARE(BLOCK(2.5f));
 
 	constexpr auto COBRA_DISTURBANCE_VELOCITY = 15.0f;
 	constexpr auto COBRA_SLEEP_FRAME = 45;
 
-	const auto CobraBite = BiteInfo(Vector3::Zero, 13);
-	const vector<unsigned int> CobraAttackJoints = { 13 };
+	const auto CobraBite = CreatureBiteInfo(Vector3i::Zero, 13);
+	const auto CobraAttackJoints = std::vector<unsigned int>{ 13 };
 
 	enum CobraState
 	{
@@ -47,11 +45,11 @@ namespace TEN::Entities::Creatures::TR3
 		COBRA_ANIM_DEATH = 4
 	};
 
-	void InitialiseCobra(short itemNumber)
+	void InitializeCobra(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 		SetAnimation(item, COBRA_ANIM_IDLE_TO_SLEEP, COBRA_SLEEP_FRAME);
 		item->ItemFlags[2] = item->HitStatus;
 	}
@@ -158,7 +156,7 @@ namespace TEN::Entities::Creatures::TR3
 					creature->Flags |= 1; // 1 = is attacking.
 
 					if (creature->Enemy->IsLara())
-						GetLaraInfo(creature->Enemy)->PoisonPotency += COBRA_BITE_POISON_POTENCY;
+						GetLaraInfo(creature->Enemy)->Status.Poison += COBRA_BITE_POISON_POTENCY;
 				}
 
 				break;

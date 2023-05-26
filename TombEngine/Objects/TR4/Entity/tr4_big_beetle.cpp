@@ -8,13 +8,11 @@
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
 #include "Game/people.h"
+#include "Game/Setup.h"
 #include "Specific/level.h"
-#include "Math/Random.h"
-#include "Specific/setup.h"
 #include "Math/Math.h"
 
-using namespace TEN::Math::Random;
-using std::vector;
+using namespace TEN::Math;
 
 namespace TEN::Entities::TR4
 {
@@ -23,8 +21,8 @@ namespace TEN::Entities::TR4
 	constexpr auto BIG_BEETLE_ATTACK_RANGE = SQUARE(CLICK(1));
 	constexpr auto BIG_BEETLE_AWARE_RANGE  = SQUARE(CLICK(12));
 
-	const auto BigBeetleBite = BiteInfo(Vector3::Zero, 12);
-	const vector<unsigned int> BigBeetleAttackJoints = { 5, 6 };
+	const auto BigBeetleBite = CreatureBiteInfo(Vector3i::Zero, 12);
+	const auto BigBeetleAttackJoints = std::vector<unsigned int>{ 5, 6 };
 
 	enum BigBeetleState
 	{
@@ -61,11 +59,11 @@ namespace TEN::Entities::TR4
 
 	};
 
-	void InitialiseBigBeetle(short itemNumber)
+	void InitializeBigBeetle(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 		SetAnimation(item, BBEETLE_ANIM_IDLE);
 	}
 
@@ -122,7 +120,7 @@ namespace TEN::Entities::TR4
 			angle = CreatureTurn(item, creature->MaxTurn);
 
 			if (item->HitStatus || AI.distance > BIG_BEETLE_AWARE_RANGE ||
-				TestProbability(1.0f / 128))
+				Random::TestProbability(1 / 128.0f))
 			{
 				creature->Flags = 0;
 			}
@@ -146,7 +144,7 @@ namespace TEN::Entities::TR4
 			case BBEETLE_STATE_FLY_FORWARD:
 				creature->MaxTurn = ANGLE(7.0f);
 
-				if (item->Animation.RequiredState)
+				if (item->Animation.RequiredState != NO_STATE)
 					item->Animation.TargetState = item->Animation.RequiredState;
 				else if (AI.ahead && AI.distance < BIG_BEETLE_ATTACK_RANGE)
 					item->Animation.TargetState = BBEETLE_STATE_FLY_IDLE;
@@ -196,11 +194,11 @@ namespace TEN::Entities::TR4
 			case BBEETLE_STATE_FLY_IDLE:
 				creature->MaxTurn = ANGLE(7.0f);
 
-				if (item->Animation.RequiredState)
+				if (item->Animation.RequiredState != NO_STATE)
 					item->Animation.TargetState = item->Animation.RequiredState;
 				else if (!item->HitStatus && item->AIBits != MODIFY &&
-					TestProbability(0.99f) &&
-					((creature->Mood != MoodType::Bored && TestProbability(0.996f)) ||
+					Random::TestProbability(0.99f) &&
+					((creature->Mood != MoodType::Bored && Random::TestProbability(0.996f)) ||
 						creature->HurtByLara || item->AIBits == MODIFY))
 				{
 					if (AI.ahead)

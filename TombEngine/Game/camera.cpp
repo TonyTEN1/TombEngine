@@ -13,12 +13,12 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/room.h"
 #include "Game/savegame.h"
+#include "Game/Setup.h"
 #include "Game/spotcam.h"
 #include "Objects/Generic/Object/burning_torch.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 
 using TEN::Renderer::g_Renderer;
 
@@ -117,7 +117,7 @@ inline void RumbleFromBounce()
 }
 
 
-void InitialiseCamera()
+void InitializeCamera()
 {
 	Camera.shift = LaraItem->Pose.Position.y - SECTOR(1);
 
@@ -331,6 +331,10 @@ void ObjCamera(ItemInfo* camSlotId, int camMeshId, ItemInfo* targetItem, int tar
 	Camera.timer = -1;
 }
 
+void ClearObjCamera()
+{
+	ItemCamera.ItemCameraOn = false;
+}
 
 void MoveObjCamera(GameVector* ideal, ItemInfo* camSlotId, int camMeshId, ItemInfo* targetItem, int targetMeshId)
 {
@@ -403,6 +407,16 @@ void MoveObjCamera(GameVector* ideal, ItemInfo* camSlotId, int camMeshId, ItemIn
 										ItemCamera.LastAngle.y = angle.y, 
 										ItemCamera.LastAngle.z = angle.z);
 	}
+}
+
+void RefreshFixedCamera(short camNumber)
+{
+	auto& camera = g_Level.Cameras[camNumber];
+
+	auto origin = GameVector(camera.Position, camera.RoomNumber);
+	int moveSpeed = camera.Speed * 8 + 1;
+
+	MoveCamera(&origin, moveSpeed);
 }
 
 void ChaseCamera(ItemInfo* item)
@@ -531,8 +545,11 @@ void DoThumbstickCamera()
 		Camera.target.y == OldCam.target.y &&
 		Camera.target.z == OldCam.target.z))
 	{
-		Camera.targetAngle = ANGLE(THUMBCAM_VERTICAL_CONSTRAINT_ANGLE * AxisMap[InputAxis::CameraHorizontal]);
-		Camera.targetElevation = ANGLE(-10.0f + (THUMBCAM_HORIZONTAL_CONSTRAINT_ANGLE * AxisMap[InputAxis::CameraVertical]));
+		if (abs(AxisMap[InputAxis::CameraHorizontal]) > EPSILON && abs(Camera.targetAngle) == 0)
+			Camera.targetAngle = ANGLE(THUMBCAM_VERTICAL_CONSTRAINT_ANGLE * AxisMap[InputAxis::CameraHorizontal]);
+
+		if (abs(AxisMap[InputAxis::CameraVertical]) > EPSILON)
+			Camera.targetElevation = ANGLE(-10.0f + (THUMBCAM_HORIZONTAL_CONSTRAINT_ANGLE * AxisMap[InputAxis::CameraVertical]));
 	}
 }
 
@@ -1549,7 +1566,7 @@ void LookLeftRight(ItemInfo* item)
 	}
 
 	if (lara->Control.HandStatus != HandStatus::Busy &&
-		lara->Vehicle == NO_ITEM &&
+		lara->Context.Vehicle == NO_ITEM &&
 		!lara->LeftArm.Locked &&
 		!lara->RightArm.Locked)
 	{
@@ -1588,7 +1605,7 @@ void LookUpDown(ItemInfo* item)
 	}
 
 	if (lara->Control.HandStatus != HandStatus::Busy &&
-		lara->Vehicle == NO_ITEM &&
+		lara->Context.Vehicle == NO_ITEM &&
 		!lara->LeftArm.Locked &&
 		!lara->RightArm.Locked)
 	{
@@ -1620,7 +1637,7 @@ void ResetLook(ItemInfo* item)
 		if (lara->Control.HandStatus != HandStatus::Busy &&
 			!lara->LeftArm.Locked &&
 			!lara->RightArm.Locked &&
-			lara->Vehicle == NO_ITEM)
+			lara->Context.Vehicle == NO_ITEM)
 		{
 			lara->ExtraTorsoRot = lara->ExtraHeadRot;
 		}
@@ -2060,7 +2077,7 @@ void HandleOptics(ItemInfo* item)
 	AlterFOV(LastFOV);
 
 	Lara.Inventory.IsBusy = false;
-	ResetLaraFlex(LaraItem);
+	ResetPlayerFlex(LaraItem);
 
 	TrInput &= ~IN_LOOK;
 }

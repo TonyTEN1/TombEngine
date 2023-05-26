@@ -8,10 +8,10 @@
 #include "Game/effects/item_fx.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/misc.h"
+#include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Effects/Boss.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 
 using namespace TEN::Effects::Boss;
 using namespace TEN::Effects::Electricity;
@@ -31,10 +31,13 @@ namespace TEN::Entities::Creatures::TR3
 
 	constexpr auto PUNA_EXPLOSION_NUM_MAX	= 60;
 	constexpr auto PUNA_HEAD_ATTACK_NUM_MAX = 4;
-	constexpr auto PUNA_EFFECT_COLOR		= Vector4(0.0f, 0.4f, 0.5f, 0.5f);
 
-	const auto PunaBossHeadBite = BiteInfo(Vector3::Zero, 8);
-	const auto PunaBossHandBite = BiteInfo(Vector3::Zero, 14);
+	constexpr auto PUNA_EFFECT_COLOR		   = Vector4(0.0f, 0.4f, 0.5f, 0.5f);
+	constexpr auto PUNA_EXPLOSION_MAIN_COLOR   = Vector4(0.0f, 0.7f, 0.3f, 0.5f);
+	constexpr auto PUNA_EXPLOSION_SECOND_COLOR = Vector4(0.1f, 0.3f, 0.7f, 0.5f);
+
+	const auto PunaBossHeadBite = CreatureBiteInfo(Vector3i::Zero, 8);
+	const auto PunaBossHandBite = CreatureBiteInfo(Vector3i::Zero, 14);
 
 	enum PunaState
 	{
@@ -65,7 +68,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (!item.TestFlags((int)BossItemFlags::Object, (short)BossFlagValue::Lizard))
 			return NO_ITEM;
 
-		auto pos = GetJointPosition(&item, PunaBossHeadBite.meshNum).ToVector3();
+		auto pos = GetJointPosition(&item, PunaBossHeadBite).ToVector3();
 		auto orient = Geometry::GetOrientToPoint(pos, target);
 		return (orient.y - item.Pose.Orientation.y);
 	}
@@ -114,7 +117,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (lizardList.size() == 1)
 			return lizardList[0];
 		else
-			return lizardList[Random::GenerateInt(0, lizardList.size() - 1)];
+			return lizardList[Random::GenerateInt(0, (int)lizardList.size() - 1)];
 	}
 
 	static bool IsLizardActiveNearby(const ItemInfo& item, bool isInitializing = false)
@@ -210,11 +213,11 @@ namespace TEN::Entities::Creatures::TR3
 		}
 	}
 
-	static void SpawnPunaLightning(ItemInfo& item, const Vector3& pos, const BiteInfo& bite, bool isSummon)
+	static void SpawnPunaLightning(ItemInfo& item, const Vector3& pos, const CreatureBiteInfo& bite, bool isSummon)
 	{
 		const auto& creature = *GetCreatureInfo(&item);
 
-		auto origin = GameVector(GetJointPosition(&item, bite.meshNum, bite.Position), item.RoomNumber);
+		auto origin = GameVector(GetJointPosition(&item, bite), item.RoomNumber);
 
 		if (isSummon)
 		{
@@ -272,11 +275,11 @@ namespace TEN::Entities::Creatures::TR3
 		}
 	}
 
-	void InitialisePuna(short itemNumber)
+	void InitializePuna(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 		SetAnimation(&item, PUNA_ANIM_IDLE);
 		CheckForRequiredObjects(item);
 
@@ -323,7 +326,7 @@ namespace TEN::Entities::Creatures::TR3
 				creature.MaxTurn = 0;
 			}
 
-			int frameEnd = g_Level.Anims[object.animIndex + PUNA_ANIM_DEATH].frameEnd;
+			int frameEnd =  GetAnimData(object, PUNA_ANIM_DEATH).frameEnd;
 			if (item.Animation.FrameNumber >= frameEnd)
 			{
 				// Avoid having the object stop working.
@@ -334,7 +337,7 @@ namespace TEN::Entities::Creatures::TR3
 					item.ItemFlags[(int)BossItemFlags::ExplodeCount]++;
 
 				// Do explosion effect.
-				ExplodeBoss(itemNumber, item, PUNA_EXPLOSION_NUM_MAX, PUNA_EFFECT_COLOR);
+				ExplodeBoss(itemNumber, item, PUNA_EXPLOSION_NUM_MAX, PUNA_EFFECT_COLOR, PUNA_EXPLOSION_MAIN_COLOR, PUNA_EXPLOSION_SECOND_COLOR);
 				return;
 			}
 			else
@@ -455,7 +458,7 @@ namespace TEN::Entities::Creatures::TR3
 				item.SetFlagField((int)BossItemFlags::ShieldIsEnabled, 0);
 				creature.MaxTurn = 0;
 
-				if (item.Animation.FrameNumber == GetFrameNumber(&item, 14))
+				if (item.Animation.FrameNumber == GetFrameIndex(&item, 14))
 					SpawnPunaLightning(item, targetPos.ToVector3(), PunaBossHeadBite, false);
 
 				break;
@@ -464,7 +467,7 @@ namespace TEN::Entities::Creatures::TR3
 				item.SetFlagField((int)BossItemFlags::ShieldIsEnabled, 0);
 				creature.MaxTurn = 0;
 
-				if (item.Animation.FrameNumber == GetFrameNumber(&item, 30))
+				if (item.Animation.FrameNumber == GetFrameIndex(&item, 30))
 				{
 					if (item.TestFlags((int)BossItemFlags::Object, (short)BossFlagValue::Lizard) &&
 						item.TestFlagField((int)BossItemFlags::AttackType, (int)PunaAttackType::SummonLightning) &&

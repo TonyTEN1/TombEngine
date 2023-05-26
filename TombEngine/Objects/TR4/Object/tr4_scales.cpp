@@ -1,17 +1,20 @@
 #include "framework.h"
-#include "tr4_scales.h"
-#include "Specific/level.h"
+#include "Objects/TR4/Object/tr4_scales.h"
+
+#include "Game/animation.h"
+#include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
-#include "Specific/setup.h"
+#include "Game/effects/Drip.h"
+#include "Game/effects/tomb4fx.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
-#include "Sound/sound.h"
-#include "Game/animation.h"
-#include "Game/effects/tomb4fx.h"
-#include "tr4_ahmet.h"
+#include "Game/Setup.h"
+#include "Objects/TR4/Entity/tr4_ahmet.h"
 #include "Objects/Generic/Switches/generic_switch.h"
-#include "Game/collision/collide_item.h"
+#include "Sound/sound.h"
+#include "Specific/level.h"
 
+using namespace TEN::Effects::Drip;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 
@@ -20,19 +23,17 @@ ObjectCollisionBounds ScalesBounds =
 	GameBoundingBox(
 		-CLICK(5.5f), -CLICK(5.5f),
 		0, 0,
-		-SECTOR(0.5f), SECTOR(0.5f)
-	),
+		-SECTOR(0.5f), SECTOR(0.5f)),
 	std::pair(
 		EulerAngles(ANGLE(-10.0f), ANGLE(-30.0f), ANGLE(-10.0f)),
-		EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f))
-	)
+		EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f)))
 };
 
 void ScalesControl(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 
-	if (item->Animation.FrameNumber != g_Level.Anims[item->Animation.AnimNumber].frameEnd)
+	if (item->Animation.FrameNumber != GetAnimData(item).frameEnd)
 	{
 		AnimateItem(item);
 		return;
@@ -50,7 +51,7 @@ void ScalesControl(short itemNumber)
 			return;
 		}
 
-		if (RespawnAhmet(Lara.InteractedItem))
+		if (RespawnAhmet(Lara.Context.InteractedItem))
 		{
 			short itemNos[8];
 			int sw = GetSwitchTrigger(item, itemNos, 0);
@@ -130,15 +131,15 @@ void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			if (TestLaraPosition(ScalesBounds, item, laraItem))
 			{
 				laraItem->Animation.AnimNumber = LA_WATERSKIN_POUR_HIGH;
-				laraItem->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+				laraItem->Animation.FrameNumber = GetAnimData(item).frameBase;
 				item->Pose.Orientation.y = rotY;
 			}
-			else if (laraItem->Animation.FrameNumber == g_Level.Anims[LA_WATERSKIN_POUR_HIGH].frameBase + 51)
+			else if (laraItem->Animation.FrameNumber == GetAnimData(*laraItem, LA_WATERSKIN_POUR_HIGH).frameBase + 51)
 			{
 				SoundEffect(SFX_TR4_POUR_WATER, &laraItem->Pose);
 				item->Pose.Orientation.y = rotY;
 			}
-			else if (laraItem->Animation.FrameNumber == g_Level.Anims[LA_WATERSKIN_POUR_HIGH].frameBase + 74)
+			else if (laraItem->Animation.FrameNumber == GetAnimData(*laraItem, LA_WATERSKIN_POUR_HIGH).frameBase + 74)
 			{
 				AddActiveItem(itemNumber);
 				item->Status = ITEM_ACTIVE;
@@ -161,24 +162,22 @@ void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 		}
 	}
 	
-	if (laraItem->Animation.FrameNumber >= g_Level.Anims[LA_WATERSKIN_POUR_LOW].frameBase + 44 &&
-		laraItem->Animation.FrameNumber <= g_Level.Anims[LA_WATERSKIN_POUR_LOW].frameBase + 72 ||
-		laraItem->Animation.FrameNumber >= g_Level.Anims[LA_WATERSKIN_POUR_HIGH].frameBase + 51 &&
-		laraItem->Animation.FrameNumber <= g_Level.Anims[LA_WATERSKIN_POUR_HIGH].frameBase + 74)
+	if ((laraItem->Animation.FrameNumber >= GetAnimData(*laraItem, LA_WATERSKIN_POUR_LOW).frameBase + 44 &&
+		laraItem->Animation.FrameNumber <= GetAnimData(*laraItem, LA_WATERSKIN_POUR_LOW).frameBase + 72) ||
+		(laraItem->Animation.FrameNumber >= GetAnimData(*laraItem, LA_WATERSKIN_POUR_HIGH).frameBase + 51 &&
+		laraItem->Animation.FrameNumber <= GetAnimData(*laraItem, LA_WATERSKIN_POUR_HIGH).frameBase + 74))
 	{
-		auto pos = GetJointPosition(laraItem, LM_LHAND);
+		auto pos = GetJointPosition(laraItem, LM_LHAND).ToVector3();
+		auto velocity = Vector3(0.0f, Random::GenerateFloat(32.0f, 64.0f), 0.0f);
+		auto color = Vector4::One;
+		float life = Random::GenerateFloat(16.0f, 48.0f);
+		float gravity = Random::GenerateFloat(32.0f, 64.0f);
 
-		auto* drip = &Drips[GetFreeDrip()];
-		drip->x = pos.x;
-		drip->y = pos.y;
-		drip->z = pos.z;
-		drip->on = 1;
-		drip->r = (GetRandomControl() & 0xF) + 24;
-		drip->g = (GetRandomControl() & 0xF) + 44;
-		drip->b = (GetRandomControl() & 0xF) + 56;
-		drip->yVel = (GetRandomControl() & 0x1F) + 32;
-		drip->gravity = (GetRandomControl() & 0x1F) + 32;
-		drip->life = (GetRandomControl() & 0x1F) + 16;
-		drip->roomNumber = laraItem->RoomNumber;
+		SpawnDrip(pos, laraItem->RoomNumber, velocity, life, gravity);
+
+		// TODO: Generate colours.
+		/*drip->r = Random::GenerateFloat(24, 40);
+		drip->g = Random::GenerateFloat(24, 60);
+		drip->b = Random::GenerateFloat(24, 72);*/
 	}
 }

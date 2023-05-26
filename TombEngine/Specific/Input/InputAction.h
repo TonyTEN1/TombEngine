@@ -1,7 +1,5 @@
 #pragma once
 
-using std::vector;
-
 namespace TEN::Input
 {
 	typedef enum class ActionID
@@ -69,7 +67,7 @@ namespace TEN::Input
 	class InputAction
 	{
 	private:
-		// Components
+		// Members
 		ActionID ID				= In::None;
 		float	 Value			= 0.0f;
 		float	 PrevValue		= 0.0f;
@@ -98,7 +96,7 @@ namespace TEN::Input
 		void Update(float value);
 		void Clear();
 
-		void PrintDebugInfo() const;
+		void DrawDebug() const;
 
 	private:
 		// Helpers

@@ -5,19 +5,18 @@
 #include "Game/control/flipeffect.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Setup.h"
 #include "Specific/level.h"
-#include "Math/Random.h"
-#include "Specific/setup.h"
 #include "Math/Math.h"
 
-using namespace TEN::Math::Random;
+using namespace TEN::Math;
 
 namespace TEN::Entities::TR4
 {
 	BeetleData BeetleSwarm[NUM_BEETLES];
 	int NextBeetle;
 
-	void InitialiseBeetleSwarm(short itemNumber)
+	void InitializeBeetleSwarm(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
@@ -61,12 +60,12 @@ namespace TEN::Entities::TR4
 
 		if (item->TriggerFlags)
 		{
-			if (!item->ItemFlags[2] || TestProbability(0.06f))
+			if (!item->ItemFlags[2] || Random::TestProbability(0.06f))
 			{
 				item->TriggerFlags--;
 				if (item->ItemFlags[2])
 				{
-					if (TestProbability(0.5f))
+					if (Random::TestProbability(1 / 2.0f))
 						item->ItemFlags[2]--;
 				}
 

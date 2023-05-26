@@ -11,12 +11,11 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/misc.h"
+#include "Game/Setup.h"
+#include "Math/Math.h"
 #include "Specific/level.h"
-#include "Math/Random.h"
-#include "Specific/setup.h"
 
-using namespace TEN::Math::Random;
-using std::vector;
+using namespace TEN::Math;
 
 namespace TEN::Entities::TR4
 {
@@ -24,14 +23,12 @@ namespace TEN::Entities::TR4
 	constexpr auto BIG_SCORPION_TROOP_ATTACK_DAMAGE	   = 15;
 	constexpr auto BIG_SCORPION_STINGER_POISON_POTENCY = 16;
 
-	constexpr auto BIG_SCORPION_ATTACK_RANGE = SQUARE(SECTOR(1.35));
-	constexpr auto BIG_SCORPION_RUN_RANGE	 = SQUARE(SECTOR(2));
+	constexpr auto BIG_SCORPION_ATTACK_RANGE = SQUARE(BLOCK(1.35));
+	constexpr auto BIG_SCORPION_RUN_RANGE	 = SQUARE(BLOCK(2));
 
-	const auto BigScorpionBite1 = BiteInfo(Vector3::Zero, 8);
-	const auto BigScorpionBite2 = BiteInfo(Vector3::Zero, 23);
-	const vector<unsigned int> BigScorpionAttackJoints = { 8, 20, 21, 23, 24 };
-
-	int CutSeqNum;
+	const auto BigScorpionBite1 = CreatureBiteInfo(Vector3i::Zero, 8);
+	const auto BigScorpionBite2 = CreatureBiteInfo(Vector3i::Zero, 23);
+	const auto BigScorpionAttackJoints = std::vector<unsigned int>{ 8, 20, 21, 23, 24 };
 
 	enum BigScorpionState
 	{
@@ -58,11 +55,11 @@ namespace TEN::Entities::TR4
 		BSCORPION_ANIM_KILL_TROOP = 7
 	};
 
-	void InitialiseScorpion(short itemNumber)
+	void InitializeScorpion(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 
 		if (item->TriggerFlags == 1)
 			SetAnimation(item, BSCORPION_ANIM_KILL_TROOP);
@@ -88,7 +85,6 @@ namespace TEN::Entities::TR4
 			{
 				if (item->TriggerFlags > 0 && item->TriggerFlags < 7)
 				{
-					CutSeqNum = 4;
 					SetAnimation(item, BSCORPION_ANIM_DEATH);
 					item->Status = ITEM_INVISIBLE;
 					creature->MaxTurn = 0;
@@ -114,11 +110,6 @@ namespace TEN::Entities::TR4
 				{
 					SetAnimation(item, BSCORPION_ANIM_DEATH);
 				}
-			}
-			else if (CutSeqNum == 4)
-			{
-				item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameEnd - 1;
-				item->Status = ITEM_INVISIBLE;
 			}
 			else if (item->Animation.ActiveState == BSCORPION_STATE_DEATH && item->Status == ITEM_INVISIBLE)
 				item->Status = ITEM_ACTIVE;
@@ -182,7 +173,7 @@ namespace TEN::Entities::TR4
 					creature->MaxTurn = ANGLE(2.0f);
 
 					// If chanced upon or the troop is close to death, do pincer attack.
-					if (TestProbability(0.5f) ||
+					if (Random::TestProbability(1 / 2.0f) ||
 						(creature->Enemy != nullptr && creature->Enemy->HitPoints <= 15 && creature->Enemy->ObjectNumber == ID_TROOPS))
 					{
 						item->Animation.TargetState = BSCORPION_STATE_PINCER_ATTACK;
@@ -249,7 +240,7 @@ namespace TEN::Entities::TR4
 					if (item->Animation.ActiveState == BSCORPION_STATE_STINGER_ATTACK)
 					{
 						if (creature->Enemy->IsLara())
-							GetLaraInfo(creature->Enemy)->PoisonPotency += BIG_SCORPION_STINGER_POISON_POTENCY;
+							GetLaraInfo(creature->Enemy)->Status.Poison += BIG_SCORPION_STINGER_POISON_POTENCY;
 
 						CreatureEffect2(item, BigScorpionBite1, 10, item->Pose.Orientation.y - ANGLE(180.0f), DoBloodSplat);
 					}
@@ -271,7 +262,7 @@ namespace TEN::Entities::TR4
 			case BSCORPION_STATE_KILL_TROOP:
 				creature->MaxTurn = 0;
 
-				if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameEnd)
+				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
 					item->TriggerFlags++;
 
 				if ((creature->Enemy != nullptr && creature->Enemy->HitPoints <= 0) ||
@@ -288,10 +279,7 @@ namespace TEN::Entities::TR4
 			}
 		}
 
-		if (!CutSeqNum)
-			CreatureAnimation(itemNumber, angle, 0);
-
-		auto radius = Vector2(object->radius, object->radius * 1.33f);
-		AlignEntityToSurface(item, radius);
+		CreatureAnimation(itemNumber, angle, 0);
+		AlignEntityToSurface(item, Vector2(object->radius, object->radius * 1.33f));
 	}
 }

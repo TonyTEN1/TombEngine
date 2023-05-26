@@ -171,7 +171,7 @@ static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD
 void  SetVolumeMusic(int vol);
 void  SetVolumeFX(int vol);
 
-void  Sound_Init();
+void  Sound_Init(const std::string& gameDirectory);
 void  Sound_DeInit();
 bool  Sound_CheckBASSError(const char* message, bool verbose, ...);
 void  Sound_UpdateScene();
@@ -184,3 +184,5 @@ float Sound_DistanceToListener(Vector3 position);
 float Sound_Attenuate(float gain, float distance, float radius);
 bool  Sound_UpdateEffectPosition(int index, Pose *position, bool force = false);
 bool  Sound_UpdateEffectAttributes(int index, float pitch, float gain);
+
+bool  IsSoundEffectPlaying(int effectID);

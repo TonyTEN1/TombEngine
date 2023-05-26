@@ -1,16 +1,17 @@
 #include "framework.h"
-#include "tr5_gunship.h"
-#include "Specific/level.h"
-#include "Specific/setup.h"
-#include "Game/control/los.h"
-#include "Sound/sound.h"
+#include "Objects/TR5/Entity/tr5_gunship.h"
+
 #include "Game/animation.h"
 #include "Game/camera.h"
-#include "Game/effects/effects.h"
+#include "Game/control/los.h"
 #include "Game/effects/debris.h"
-#include "Objects/Generic/Object/objects.h"
+#include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Setup.h"
+#include "Objects/Generic/Object/objects.h"
+#include "Sound/sound.h"
+#include "Specific/level.h"
 
 namespace TEN::Entities::Creatures::TR5
 {
@@ -127,7 +128,7 @@ namespace TEN::Entities::Creatures::TR5
 				if (hitItem->ObjectNumber != ID_LARA)
 				{
 					if (hitItem->ObjectNumber >= ID_SMASH_OBJECT1 &&
-						hitItem->ObjectNumber <= ID_SMASH_OBJECT8)
+						hitItem->ObjectNumber <= ID_SMASH_OBJECT16)
 					{
 						ExplodeItemNode(hitItem, 0, 0, 128);
 						SmashObject(objOnLos);

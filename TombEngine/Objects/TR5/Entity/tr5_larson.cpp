@@ -10,10 +10,11 @@
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
 #include "Game/people.h"
+#include "Game/Setup.h"
+#include "Math/Math.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 
-using namespace TEN::Math::Random;
+using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR5
 {
@@ -30,15 +31,15 @@ namespace TEN::Entities::Creatures::TR5
 
 	#define TR5_LARSON_MIN_HP 40
 
-	const auto LarsonGun  = BiteInfo(Vector3(-55.0f, 200.0f, 5.0f), 14);
-	const auto PierreGun1 = BiteInfo(Vector3(60.0f, 200.0f, 0.0f), 11);
-	const auto PierreGun2 = BiteInfo(Vector3(-57.0f, 200.0f, 0.0f), 14);
+	const auto LarsonGun  = CreatureBiteInfo(Vector3i(-55, 200, 5), 14);
+	const auto PierreGunLeft = CreatureBiteInfo(Vector3i(45, 200, 0), 11);
+	const auto PierreGunRight = CreatureBiteInfo(Vector3i(-40, 200, 0), 14);
 
-	void InitialiseLarson(short itemNumber)
+	void InitializeLarson(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 		SetAnimation(item, 0);
 
 		if (!item->TriggerFlags)
@@ -78,13 +79,10 @@ namespace TEN::Entities::Creatures::TR5
 			creature->flags++;
 		}*/
 
-		// Fire weapon effects.
-		if (creature->FiredWeapon)
-		{
-			auto pos = GetJointPosition(item, LarsonGun.meshNum, Vector3i(LarsonGun.Position));
-			TriggerDynamicLight(pos.x, pos.y, pos.z, 2 * creature->FiredWeapon + 10, 192, 128, 32);
-			creature->FiredWeapon--;
-		}
+		if (creature->MuzzleFlash[0].Delay != 0)
+			creature->MuzzleFlash[0].Delay--;
+		if (creature->MuzzleFlash[1].Delay != 0)
+			creature->MuzzleFlash[1].Delay--;
 
 		if (item->TriggerFlags)
 		{
@@ -154,7 +152,7 @@ namespace TEN::Entities::Creatures::TR5
 				if (AI.ahead)
 					joint1 = AI.xAngle;
 
-				if (item->Animation.RequiredState)
+				if (item->Animation.RequiredState != NO_STATE)
 					item->Animation.TargetState = item->Animation.RequiredState;
 				else if (item->AIBits & AMBUSH)
 					item->Animation.TargetState = STATE_TR5_LARSON_RUN;
@@ -187,7 +185,7 @@ namespace TEN::Entities::Creatures::TR5
 								item->Animation.TargetState = STATE_TR5_LARSON_WALK;
 						}
 						else
-							item->Animation.TargetState = TestProbability(0.997f) ? 2 : 6;
+							item->Animation.TargetState = Random::TestProbability(0.997f) ? 2 : 6;
 					}
 				}
 
@@ -199,7 +197,7 @@ namespace TEN::Entities::Creatures::TR5
 				if (AI.ahead)
 					joint2 = AI.angle;
 
-				if (creature->Mood == MoodType::Bored && TestProbability(1.0f / 340))
+				if (creature->Mood == MoodType::Bored && Random::TestProbability(1.0f / 340))
 				{
 					item->Animation.TargetState = STATE_TR5_LARSON_STOP;
 					item->Animation.RequiredState = STATE_TR5_LARSON_IDLE;
@@ -235,7 +233,7 @@ namespace TEN::Entities::Creatures::TR5
 					item->Animation.TargetState = STATE_TR5_LARSON_STOP;
 				else if (item->AIBits & AMBUSH)
 					item->Animation.TargetState = STATE_TR5_LARSON_RUN;
-				else if (creature->Mood != MoodType::Bored || TestProbability(0.997f))
+				else if (creature->Mood != MoodType::Bored || Random::TestProbability(0.997f))
 				{
 					if (Targetable(item, &AI))
 					{
@@ -295,7 +293,7 @@ namespace TEN::Entities::Creatures::TR5
 					item->Animation.TargetState = STATE_TR5_LARSON_STOP;
 				else
 				{
-					if (TestProbability(1.0f / 340))
+					if (Random::TestProbability(1.0f / 340))
 					{
 						item->Animation.TargetState = STATE_TR5_LARSON_STOP;
 						item->Animation.RequiredState = STATE_TR5_LARSON_WALK;
@@ -322,20 +320,26 @@ namespace TEN::Entities::Creatures::TR5
 				else
 					item->Pose.Orientation.y += AI.angle;
 				
-				if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase)
+				if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
 				{
 					if (item->ObjectNumber == ID_PIERRE)
 					{
-						ShotLara(item, &AI, PierreGun1, joint0, 20);
-						ShotLara(item, &AI, PierreGun2, joint0, 20);
+						ShotLara(item, &AI, PierreGunLeft, joint0, 20);
+						ShotLara(item, &AI, PierreGunRight, joint0, 20);
+						creature->MuzzleFlash[0].Bite = PierreGunLeft;
+						creature->MuzzleFlash[0].Delay = 2;
+						creature->MuzzleFlash[1].Bite = PierreGunRight;
+						creature->MuzzleFlash[1].Delay = 2;
 					}
 					else
+					{
 						ShotLara(item, &AI, LarsonGun, joint0, 20);
-					
-					creature->FiredWeapon = 2;
+						creature->MuzzleFlash[0].Bite = LarsonGun;
+						creature->MuzzleFlash[0].Delay = 2;
+					}
 				}
 
-				if (creature->Mood == MoodType::Escape && TestProbability(0.75f))
+				if (creature->Mood == MoodType::Escape && Random::TestProbability(0.75f))
 					item->Animation.RequiredState = STATE_TR5_LARSON_STOP;
 
 				break;
@@ -348,7 +352,7 @@ namespace TEN::Entities::Creatures::TR5
 		{
 			// When Larson dies, it activates trigger at start position
 			if (item->ObjectNumber == ID_LARSON &&
-				item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameEnd)
+				item->Animation.FrameNumber == GetAnimData(item).frameEnd)
 			{
 				short roomNumber = item->ItemFlags[2] & 0xFF;
 				short floorHeight = item->ItemFlags[2] & 0xFF00;
@@ -372,7 +376,7 @@ namespace TEN::Entities::Creatures::TR5
 			else
 				item->Animation.AnimNumber = Objects[ID_LARSON].animIndex + ANIMATION_TR5_LARSON_DIE;
 
-			item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+			item->Animation.FrameNumber = GetAnimData(item).frameBase;
 			item->Animation.ActiveState = STATE_TR5_LARSON_DIE;
 		}
 

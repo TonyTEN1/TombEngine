@@ -9,9 +9,9 @@
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
 #include "Game/people.h"
+#include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 
 using namespace TEN::Math;
 
@@ -20,20 +20,20 @@ namespace TEN::Entities::Creatures::TR1
 	constexpr auto BIG_RAT_BITE_ATTACK_DAMAGE	= 20;
 	constexpr auto BIG_RAT_POUNCE_ATTACK_DAMAGE = 25;
 
-	constexpr auto BIG_RAT_ALERT_RANGE			   = SQUARE(SECTOR(1.5f));
-	constexpr auto BIG_RAT_VISIBILITY_RANGE		   = SQUARE(SECTOR(5));
-	constexpr auto BIG_RAT_LAND_BITE_ATTACK_RANGE  = SQUARE(SECTOR(0.34f));
-	constexpr auto BIG_RAT_POUNCE_ATTACK_RANGE	   = SQUARE(SECTOR(0.5f));
-	constexpr auto BIG_RAT_WATER_BITE_ATTACK_RANGE = SQUARE(SECTOR(0.3f));
+	constexpr auto BIG_RAT_ALERT_RANGE			   = SQUARE(BLOCK(3 / 2.0f));
+	constexpr auto BIG_RAT_VISIBILITY_RANGE		   = SQUARE(BLOCK(5));
+	constexpr auto BIG_RAT_LAND_BITE_ATTACK_RANGE  = SQUARE(BLOCK(0.34f));
+	constexpr auto BIG_RAT_POUNCE_ATTACK_RANGE	   = SQUARE(BLOCK(1 / 2.0f));
+	constexpr auto BIG_RAT_WATER_BITE_ATTACK_RANGE = SQUARE(BLOCK(0.3f));
 
-	constexpr auto BIG_RAT_REAR_POSE_CHANCE = 1.0f / 128;
+	constexpr auto BIG_RAT_REAR_POSE_CHANCE = 1 / 128.0f;
 	constexpr auto BIG_RAT_SWIM_UP_DOWN_SPEED = 32;
 	constexpr auto BIG_RAT_WATER_SURFACE_OFFSET = 10;
 
-	const auto BIG_RAT_RUN_TURN_RATE_MAX  = ANGLE(6.0f);
-	const auto BIG_RAT_SWIM_TURN_RATE_MAX = ANGLE(3.0f);
+	constexpr auto BIG_RAT_RUN_TURN_RATE_MAX  = ANGLE(6.0f);
+	constexpr auto BIG_RAT_SWIM_TURN_RATE_MAX = ANGLE(3.0f);
 
-	const auto BigRatBite = BiteInfo(Vector3(0.0f, -11.0f, 108.0f), 3);
+	const auto BigRatBite = CreatureBiteInfo(Vector3i(0, -11, 108), 3);
 
 	enum BigRatState
 	{
@@ -69,11 +69,11 @@ namespace TEN::Entities::Creatures::TR1
 		BIG_RAT_ANIM_SWIM_TO_RUN_FORWARD = 13
 	};
 
-	void InitialiseBigRat(short itemNumber)
+	void InitializeBigRat(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 
 		if (TestEnvironment(ENV_FLAG_WATER, item))
 			SetAnimation(item, BIG_RAT_ANIM_SWIM);
@@ -145,7 +145,7 @@ namespace TEN::Entities::Creatures::TR1
 			switch (item->Animation.ActiveState)
 			{
 			case BIG_RAT_STATE_IDLE:
-				if (item->Animation.RequiredState)
+				if (item->Animation.RequiredState != NO_STATE)
 					item->Animation.TargetState = item->Animation.RequiredState;
 				else if (ai.bite && ai.distance < BIG_RAT_LAND_BITE_ATTACK_RANGE)
 					item->Animation.TargetState = BIG_RAT_STATE_LAND_BITE_ATTACK;
@@ -163,7 +163,7 @@ namespace TEN::Entities::Creatures::TR1
 					break;
 				}
 
-				if (ai.ahead && item->TouchBits.Test(BigRatBite.meshNum))
+				if (ai.ahead && item->TouchBits.Test(BigRatBite.BoneID))
 				{
 					item->Animation.TargetState = BIG_RAT_STATE_IDLE;
 				}
@@ -180,8 +180,8 @@ namespace TEN::Entities::Creatures::TR1
 				break;
 
 			case BIG_RAT_STATE_LAND_BITE_ATTACK:
-				if (!item->Animation.RequiredState && ai.ahead &&
-					item->TouchBits.Test(BigRatBite.meshNum))
+				if (item->Animation.RequiredState == NO_STATE && ai.ahead &&
+					item->TouchBits.Test(BigRatBite.BoneID))
 				{
 					DoDamage(creature->Enemy, BIG_RAT_BITE_ATTACK_DAMAGE);
 					CreatureEffect(item, BigRatBite, DoBloodSplat);
@@ -191,8 +191,8 @@ namespace TEN::Entities::Creatures::TR1
 				break;
 
 			case BIG_RAT_STATE_POUNCE_ATTACK:
-				if (!item->Animation.RequiredState && ai.ahead &&
-					item->TouchBits.Test(BigRatBite.meshNum))
+				if (item->Animation.RequiredState == NO_STATE && ai.ahead &&
+					item->TouchBits.Test(BigRatBite.BoneID))
 				{
 					DoDamage(creature->Enemy, BIG_RAT_POUNCE_ATTACK_DAMAGE);
 					CreatureEffect(item, BigRatBite, DoBloodSplat);
@@ -216,14 +216,14 @@ namespace TEN::Entities::Creatures::TR1
 					break;
 				}
 
-				if (ai.ahead && item->TouchBits.Test(BigRatBite.meshNum))
+				if (ai.ahead && item->TouchBits.Test(BigRatBite.BoneID))
 					item->Animation.TargetState = BIG_RAT_STATE_SWIM_BITE_ATTACK;
 
 				break;
 
 			case BIG_RAT_STATE_SWIM_BITE_ATTACK:
-				if (!item->Animation.RequiredState && ai.ahead &&
-					item->TouchBits.Test(BigRatBite.meshNum))
+				if (item->Animation.RequiredState == NO_STATE && ai.ahead &&
+					item->TouchBits.Test(BigRatBite.BoneID))
 				{
 					DoDamage(creature->Enemy, BIG_RAT_BITE_ATTACK_DAMAGE);
 					CreatureEffect(item, BigRatBite, DoBloodSplat);

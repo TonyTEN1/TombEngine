@@ -12,13 +12,12 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
+#include "Game/Setup.h"
+#include "Math/Math.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
-#include "Math/Random.h"
-#include "Specific/setup.h"
-#include "Math/Math.h"
 
-using namespace TEN::Math::Random;
+using namespace TEN::Math;
 
 namespace TEN::Entities::TR4
 {
@@ -34,7 +33,7 @@ namespace TEN::Entities::TR4
 			grenadeItem->ObjectNumber = ID_GRENADE;
 			grenadeItem->RoomNumber = item->RoomNumber;
 
-			InitialiseItem(grenadeItemNumber);
+			InitializeItem(grenadeItemNumber);
 
 			grenadeItem->Pose.Orientation.x = item->Pose.Orientation.x;
 			grenadeItem->Pose.Orientation.y = item->Pose.Orientation.y - ANGLE(180.0f);
@@ -47,14 +46,14 @@ namespace TEN::Entities::TR4
 			for (int i = 0; i < 5; i++)
 				TriggerGunSmoke(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, 0, 0, 0, 1, LaraWeaponType::GrenadeLauncher, 32);
 
-			if (TestProbability(0.75f))
+			if (Random::TestProbability(0.75f))
 				grenadeItem->ItemFlags[0] = 1;
 			else
 				grenadeItem->ItemFlags[0] = 2;
 
 			grenadeItem->Animation.ActiveState = grenadeItem->Pose.Orientation.x;
 			grenadeItem->Animation.TargetState = grenadeItem->Pose.Orientation.y;
-			grenadeItem->Animation.RequiredState = 0;
+			grenadeItem->Animation.RequiredState = NO_STATE;
 			grenadeItem->Animation.Velocity.z = 32;
 			grenadeItem->Animation.Velocity.y = -32 * phd_sin(grenadeItem->Pose.Orientation.x);
 			grenadeItem->HitPoints = 120;
@@ -63,7 +62,7 @@ namespace TEN::Entities::TR4
 		}
 	}
 
-	void InitialiseEnemyJeep(short itemNumber)
+	void InitializeEnemyJeep(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
@@ -163,7 +162,7 @@ namespace TEN::Entities::TR4
 				if (item->ItemFlags[0] < 0)
 					item->ItemFlags[0] = 0;
 
-				if (item->Animation.RequiredState)
+				if (item->Animation.RequiredState != NO_STATE)
 					item->Animation.TargetState = item->Animation.RequiredState;
 				else if (AI.distance > pow(SECTOR(1), 2) || Lara.Location >= item->ItemFlags[3])
 					item->Animation.TargetState = 1;
@@ -213,7 +212,7 @@ namespace TEN::Entities::TR4
 				if (height4 > (item->Floor + CLICK(2)) && item->Animation.ActiveState != 5)
 				{
 					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 8;
-					item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+					item->Animation.FrameNumber = GetAnimData(item).frameBase;
 					item->Animation.ActiveState = 5;
 					item->Animation.TargetState = 1;
 					item->ItemFlags[1] = 0;
@@ -254,7 +253,7 @@ namespace TEN::Entities::TR4
 				if (Lara.Location < item->ItemFlags[3] && item->Animation.ActiveState != 2 && item->Animation.TargetState != 2)
 				{
 					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 1;
-					item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+					item->Animation.FrameNumber = GetAnimData(item).frameBase;
 					item->Animation.TargetState = 2;
 					item->Animation.ActiveState = 2;
 

@@ -13,13 +13,12 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/misc.h"
 #include "Game/people.h"
-#include "Math/Random.h"
+#include "Game/Setup.h"
+#include "Math/Math.h"
 #include "Renderer/Renderer11Enums.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 
 using namespace TEN::Math;
-using namespace TEN::Math::Random;
 
 namespace TEN::Entities::TR4
 {
@@ -97,11 +96,11 @@ namespace TEN::Entities::TR4
 		DEMIGOD_ANIM_RUN_OVER_DEATH = 27
 	};
 
-	void InitialiseDemigod(short itemNumber)
+	void InitializeDemigod(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 		SetAnimation(item, 0);
 
 		/*if (g_Level.NumItems > 0)
@@ -167,7 +166,7 @@ namespace TEN::Entities::TR4
 			spark->flags = 602;
 			spark->rotAng = GetRandomControl() & 0xFFF;
 
-			if (TestProbability(0.5f))
+			if (Random::TestProbability(1 / 2.0f))
 				spark->rotAdd = -32 - (GetRandomControl() & 0x1F);
 			else
 				spark->rotAdd = (GetRandomControl() & 0x1F) + 32;
@@ -218,7 +217,7 @@ namespace TEN::Entities::TR4
 
 		if (animIndex == DEMIGOD2_ANIM_SINGLE_PROJECTILE_ATTACK)
 		{
-			if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase)
+			if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
 			{
 				auto origin = GetJointPosition(item, 16, Vector3i(-544, 96, 0));
 				auto target = GetJointPosition(item, 16, Vector3i(-900, 96, 0));
@@ -233,7 +232,7 @@ namespace TEN::Entities::TR4
 		}
 		else if (animIndex == DEMIGOD3_ANIM_SINGLE_PROJECTILE_ATTACK)
 		{
-			if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase)
+			if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
 			{
 				auto pos1 = GetJointPosition(item,  16, Vector3i(-544, 96, 0));
 				auto pos2 = GetJointPosition(item, 16, Vector3i(-900, 96, 0));
@@ -248,7 +247,7 @@ namespace TEN::Entities::TR4
 		}
 		else if (animIndex == DEMIGOD3_ANIM_RADIAL_PROJECTILE_ATTACK)
 		{
-			int frameNumber = item->Animation.FrameNumber - g_Level.Anims[item->Animation.AnimNumber].frameBase;
+			int frameNumber = item->Animation.FrameNumber - GetAnimData(item).frameBase;
 
 			if (frameNumber >= 8 && frameNumber <= 64)
 			{
@@ -299,12 +298,12 @@ namespace TEN::Entities::TR4
 				spark->zVel = (byte)(GetRandomControl() + 256) * phd_cos(angle);
 				spark->friction = 9;
 
-				if (TestProbability(0.5f))
+				if (Random::TestProbability(1 / 2.0f))
 				{
 					spark->flags = 16;
 					spark->rotAng = GetRandomControl() & 0xFFF;
 
-					if (TestProbability(0.5f))
+					if (Random::TestProbability(1 / 2.0f))
 						spark->rotAdd = -64 - (GetRandomControl() & 0x3F);
 					else
 						spark->rotAdd = (GetRandomControl() & 0x3F) + 64;
@@ -361,13 +360,13 @@ namespace TEN::Entities::TR4
 					item->Animation.ActiveState == DEMIGOD_STATE_RUN_FORWARD)
 				{
 					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + DEMIGOD_ANIM_RUN_OVER_DEATH;
-					item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+					item->Animation.FrameNumber = GetAnimData(item).frameBase;
 					item->Animation.ActiveState = DEMIGOD_STATE_RUN_OVER_DEATH;
 				}
 				else
 				{
 					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + DEMIGOD_ANIM_DEATH;
-					item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+					item->Animation.FrameNumber = GetAnimData(item).frameBase;
 					item->Animation.ActiveState = DEMIGOD_STATE_DEATH;
 				}
 			}
@@ -486,7 +485,7 @@ namespace TEN::Entities::TR4
 							break;
 						}
 
-						if (TestProbability(0.25f))
+						if (Random::TestProbability(1 / 4.0f))
 						{
 							item->Animation.TargetState = DEMIGOD3_STATE_RADIAL_AIM;
 							break;
@@ -695,7 +694,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case DEMIGOD1_STATE_HAMMER_ATTACK:
-				if ((item->Animation.FrameNumber - g_Level.Anims[item->Animation.AnimNumber].frameBase) == DEMIGOD_ANIM_RUN_TO_IDLE)
+				if ((item->Animation.FrameNumber - GetAnimData(item).frameBase) == DEMIGOD_ANIM_RUN_TO_IDLE)
 				{
 					auto pos = GetJointPosition(item, 17, Vector3i(80, -8, -40));
 
@@ -722,7 +721,7 @@ namespace TEN::Entities::TR4
 						LaraItem->Animation.Velocity.z = 2;
 						LaraItem->Animation.Velocity.y = 1;
 
-						ResetLaraFlex(LaraItem);
+						ResetPlayerFlex(LaraItem);
 						LaraItem->HitStatus = true;
 						Lara.Control.HandStatus = HandStatus::Free;
 					}

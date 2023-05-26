@@ -2,22 +2,23 @@
 #include "Objects/Effects/tr5_electricity.h"
 
 #include "Game/animation.h"
-#include "Game/collision/collide_room.h"
 #include "Game/collision/collide_item.h"
+#include "Game/collision/collide_room.h"
 #include "Game/collision/sphere.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
+#include "Game/effects/Ripple.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_collide.h"
-#include "Objects/Generic/Traps/traps.h"
+#include "Game/Setup.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 
 using namespace TEN::Effects::Items;
+using namespace TEN::Effects::Ripple;
 
 void TriggerElectricityWireSparks(int x, int z, byte objNum, byte node, bool glow)
 {
@@ -72,13 +73,13 @@ void TriggerElectricityWireSparks(int x, int z, byte objNum, byte node, bool glo
 	if (glow)
 	{
 		spark->scalar = 1;
-		spark->spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + 11;
+		spark->spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LENSFLARE_LIGHT;
 		spark->size = spark->sSize = (GetRandomControl() & 0x1F) + 160;
 	}
 	else
 	{
 		spark->scalar = 0;
-		spark->spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + 14;
+		spark->spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST;
 		spark->size = spark->sSize = (GetRandomControl() & 7) + 8;
 	}
 
@@ -198,12 +199,19 @@ void ElectricityWiresControl(short itemNumber)
 			short roomNumber = item->RoomNumber;
 			auto floor = GetFloor(pos.x, pos.y, pos.z, &roomNumber);
 
-			bool waterTouch = false;
-			if (g_Level.Rooms[roomNumber].flags & ENV_FLAG_WATER)
+			bool isTouchingWater = false;
+			if (TestEnvironment(ENV_FLAG_WATER, roomNumber))
 			{
-				waterTouch = true;
+				isTouchingWater = true;
+
 				if ((GetRandomControl() & 127) < 16)
-					SetupRipple(pos.x, floor->FloorHeight(pos.x, pos.y, pos.z), pos.z, (GetRandomControl() & 7) + 32, RIPPLE_FLAG_LOW_OPACITY);
+				{
+					SpawnRipple(
+						Vector3(pos.x, floor->GetSurfaceHeight(pos.x, pos.y, pos.z, true), pos.z),
+						roomNumber,
+						Random::GenerateFloat(32.0f, 40.0f),
+						(int)RippleFlags::LowOpacity);
+				}
 			}
 
 			if (pos.y < cableBottomPlane)
@@ -215,7 +223,7 @@ void ElectricityWiresControl(short itemNumber)
 
 				auto collJointRoom = GetCollision(collPos.x, collPos.y, collPos.z, collItem->RoomNumber).RoomNumber;
 
-				if (!isWaterNearby && waterTouch && roomNumber == collJointRoom)
+				if (!isWaterNearby && isTouchingWater && roomNumber == collJointRoom)
 					isWaterNearby = true;
 			}
 

@@ -12,15 +12,16 @@
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
 #include "Game/people.h"
+#include "Game/Setup.h"
+#include "Math/Math.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 
-using namespace TEN::Math::Random;
+using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR3
 {
-	const auto MPGunBite = BiteInfo(Vector3(0.0f, 160.0f, 40.0f), 13);
+	const auto MPGunBite = CreatureBiteInfo(Vector3i(0, 225, 50), 13);
 
 	enum MPGunState
 	{
@@ -66,13 +67,8 @@ namespace TEN::Entities::Creatures::TR3
 		short head = 0;
 		auto extraTorsoRot = EulerAngles::Zero;
 
-		if (creature->FiredWeapon)
-		{
-			auto pos = GetJointPosition(item, MPGunBite.meshNum, Vector3i(MPGunBite.Position));
-			TriggerDynamicLight(pos.x, pos.y, pos.z, (creature->FiredWeapon * 2) + 4, 24, 16, 4);
-
-			creature->FiredWeapon--;
-		}
+		if (creature->MuzzleFlash[0].Delay != 0)
+			creature->MuzzleFlash[0].Delay--;
 
 		if (item->BoxNumber != NO_BOX && (g_Level.Boxes[item->BoxNumber].flags & BLOCKED))
 		{
@@ -88,23 +84,24 @@ namespace TEN::Entities::Creatures::TR3
 			if (item->Animation.ActiveState != 13)
 			{
 				item->Animation.AnimNumber = Objects[ID_MP_WITH_GUN].animIndex + 14;
-				item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+				item->Animation.FrameNumber = GetAnimData(item).frameBase;
 				item->Animation.ActiveState = 13;
 			}
-			else if (TestProbability(0.25f) && item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase + 1)
+			else if (Random::TestProbability(0.25f) && item->Animation.FrameNumber == GetAnimData(item).frameBase + 1)
 			{
 				CreatureAIInfo(item, &AI);
 
 				if (Targetable(item, &AI))
 				{
-					if (AI.angle > -ANGLE(45.0f) &&
-						AI.angle < ANGLE(45.0f))
+					if (AI.angle > -ANGLE(45.0f) && AI.angle < ANGLE(45.0f))
 					{
 						head = AI.angle;
 						extraTorsoRot.y = AI.angle;
+
 						ShotLara(item, &AI, MPGunBite, extraTorsoRot.y, 32);
+						creature->MuzzleFlash[0].Bite = MPGunBite;
+						creature->MuzzleFlash[0].Delay = 2;
 						SoundEffect(SFX_TR3_OIL_SMG_FIRE, &item->Pose, SoundEnvironment::Land, 1.0f, 0.7f);
-						creature->FiredWeapon = 1;
 					}
 				}
 			}
@@ -112,7 +109,9 @@ namespace TEN::Entities::Creatures::TR3
 		else
 		{
 			if (item->AIBits)
+			{
 				GetAITarget(creature);
+			}
 			else
 			{
 				creature->Enemy = LaraItem;
@@ -191,11 +190,17 @@ namespace TEN::Entities::Creatures::TR3
 					item->Animation.AnimNumber == Objects[item->ObjectNumber].animIndex + 28)
 				{
 					if (abs(AI.angle) < ANGLE(10.0f))
+					{
 						item->Pose.Orientation.y += AI.angle;
+					}
 					else if (AI.angle < 0)
+					{
 						item->Pose.Orientation.y -= ANGLE(10.0f);
+					}
 					else
+					{
 						item->Pose.Orientation.y += ANGLE(10.0f);
+					}
 				}
 
 				if (item->AIBits & GUARD)
@@ -204,38 +209,54 @@ namespace TEN::Entities::Creatures::TR3
 					item->Animation.TargetState = MPGUN_STATE_WAIT;
 					break;
 				}
-
 				else if (item->AIBits & PATROL1)
 				{
 					item->Animation.TargetState = MPGUN_STATE_WALK;
 					head = 0;
 				}
-
 				else if (cover && (Lara.TargetEntity == item || item->HitStatus))
+				{
 					item->Animation.TargetState = MPGUN_STATE_CROUCH;
+				}
 				else if (item->Animation.RequiredState == MPGUN_STATE_CROUCH)
+				{
 					item->Animation.TargetState = MPGUN_STATE_CROUCH;
+				}
 				else if (creature->Mood == MoodType::Escape)
+				{
 					item->Animation.TargetState = MPGUN_STATE_RUN;
+				}
 				else if (Targetable(item, &AI))
 				{
-					if (TestProbability(0.25f))
+					if (Random::TestProbability(0.25f))
+					{
 						item->Animation.TargetState = MPGUN_STATE_SHOOT_1;
-					else if (TestProbability(0.5f))
+					}
+					else if (Random::TestProbability(1 / 2.0f))
+					{
 						item->Animation.TargetState = MPGUN_STATE_SHOOT_2;
+					}
 					else
+					{
 						item->Animation.TargetState = MPGUN_STATE_AIM_3;
+					}
 				}
 				else if (creature->Mood == MoodType::Bored ||
 					(item->AIBits & FOLLOW && (creature->ReachedGoal || laraAI.distance > pow(SECTOR(2), 2))))
 				{
 					if (AI.ahead)
+					{
 						item->Animation.TargetState = MPGUN_STATE_WAIT;
+					}
 					else
+					{
 						item->Animation.TargetState = MPGUN_STATE_WALK;
+					}
 				}
 				else
+				{
 					item->Animation.TargetState = MPGUN_STATE_RUN;
+				}
 
 				break;
 
@@ -254,23 +275,35 @@ namespace TEN::Entities::Creatures::TR3
 					item->Animation.TargetState = MPGUN_STATE_WAIT;
 				}
 				else if (creature->Mood == MoodType::Escape)
+				{
 					item->Animation.TargetState = MPGUN_STATE_RUN;
+				}
 				else if (Targetable(item, &AI))
 				{
 					if (AI.distance > pow(CLICK(1.5f), 2) && AI.zoneNumber == AI.enemyZone)
+					{
 						item->Animation.TargetState = MPGUN_STATE_AIM_4;
+					}
 					else
+					{
 						item->Animation.TargetState = MPGUN_STATE_WAIT;
+					}
 				}
 				else if (creature->Mood == MoodType::Bored)
 				{
 					if (AI.ahead)
+					{
 						item->Animation.TargetState = MPGUN_STATE_WALK;
+					}
 					else
+					{
 						item->Animation.TargetState = MPGUN_STATE_WAIT;
+					}
 				}
 				else
+				{
 					item->Animation.TargetState = MPGUN_STATE_RUN;
+				}
 
 				break;
 
@@ -282,21 +315,27 @@ namespace TEN::Entities::Creatures::TR3
 					head = AI.angle;
 
 				if (item->AIBits & GUARD)
+				{
 					item->Animation.TargetState = MPGUN_STATE_WAIT;
+				}
 				else if (cover && (Lara.TargetEntity == item || item->HitStatus))
 				{
 					item->Animation.RequiredState = MPGUN_STATE_CROUCH;
 					item->Animation.TargetState = MPGUN_STATE_WAIT;
 				}
 				else if (creature->Mood == MoodType::Escape)
+				{
 					break;
+				}
 				else if (Targetable(item, &AI) ||
 					(item->AIBits & FOLLOW && (creature->ReachedGoal || laraAI.distance > pow(SECTOR(2), 2))))
 				{
 					item->Animation.TargetState = MPGUN_STATE_WAIT;
 				}
 				else if (creature->Mood == MoodType::Bored)
+				{
 					item->Animation.TargetState = MPGUN_STATE_WALK;
+				}
 
 				break;
 
@@ -309,12 +348,12 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (item->Animation.AnimNumber == Objects[ID_MP_WITH_GUN].animIndex + 12 ||
 					(item->Animation.AnimNumber == Objects[ID_MP_WITH_GUN].animIndex + 1 &&
-						item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase + 10))
+						item->Animation.FrameNumber == GetAnimData(item).frameBase + 10))
 				{
 					if (!ShotLara(item, &AI, MPGunBite, extraTorsoRot.y, 32))
 						item->Animation.RequiredState = MPGUN_STATE_WAIT;
 				}
-				else if (item->HitStatus && TestProbability(0.25f) && cover)
+				else if (item->HitStatus && Random::TestProbability(0.25f) && cover)
 				{
 					item->Animation.RequiredState = MPGUN_STATE_CROUCH;
 					item->Animation.TargetState = MPGUN_STATE_WAIT;
@@ -329,6 +368,12 @@ namespace TEN::Entities::Creatures::TR3
 					extraTorsoRot.y = AI.angle;
 				}
 
+				if (item->Animation.FrameNumber == GetFrameIndex(item, 0))
+				{
+					creature->MuzzleFlash[0].Bite = MPGunBite;
+					creature->MuzzleFlash[0].Delay = 1;
+				}
+
 				if (item->Animation.RequiredState == MPGUN_STATE_WAIT)
 					item->Animation.TargetState = MPGUN_STATE_WAIT;
 
@@ -341,12 +386,15 @@ namespace TEN::Entities::Creatures::TR3
 					extraTorsoRot.y = AI.angle;
 				}
 
-				if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase)
+				if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
 				{
 					if (!ShotLara(item, &AI, MPGunBite, extraTorsoRot.y, 32))
 						item->Animation.TargetState = MPGUN_STATE_WAIT;
+
+					creature->MuzzleFlash[0].Bite = MPGunBite;
+					creature->MuzzleFlash[0].Delay = 2;
 				}
-				else if (item->HitStatus && TestProbability(0.25f) && cover)
+				else if (item->HitStatus && Random::TestProbability(0.25f) && cover)
 				{
 					item->Animation.RequiredState = MPGUN_STATE_CROUCH;
 					item->Animation.TargetState = MPGUN_STATE_WAIT;
@@ -362,13 +410,16 @@ namespace TEN::Entities::Creatures::TR3
 					extraTorsoRot.y = AI.angle;
 				}
 
-				if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase ||
-					item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase + 11)
+				if (item->Animation.FrameNumber == GetAnimData(item).frameBase ||
+					item->Animation.FrameNumber == GetAnimData(item).frameBase + 11)
 				{
 					if (!ShotLara(item, &AI, MPGunBite, extraTorsoRot.y, 32))
 						item->Animation.TargetState = MPGUN_STATE_WAIT;
+
+					creature->MuzzleFlash[0].Bite = MPGunBite;
+					creature->MuzzleFlash[0].Delay = 2;
 				}
-				else if (item->HitStatus && TestProbability(0.25f) && cover)
+				else if (item->HitStatus && Random::TestProbability(0.25f) && cover)
 				{
 					item->Animation.RequiredState = MPGUN_STATE_CROUCH;
 					item->Animation.TargetState = MPGUN_STATE_WAIT;
@@ -384,14 +435,17 @@ namespace TEN::Entities::Creatures::TR3
 				}
 
 				if ((item->Animation.AnimNumber == Objects[ID_MP_WITH_GUN].animIndex + 18 &&
-						item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase + 17) ||
+						item->Animation.FrameNumber == GetAnimData(item).frameBase + 17) ||
 					(item->Animation.AnimNumber == Objects[ID_MP_WITH_GUN].animIndex + 19 &&
-						item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase + 6))
+						item->Animation.FrameNumber == GetAnimData(item).frameBase + 6))
 				{
 					if (!ShotLara(item, &AI, MPGunBite, extraTorsoRot.y, 32))
 						item->Animation.RequiredState = MPGUN_STATE_WALK;
+
+					creature->MuzzleFlash[0].Bite = MPGunBite;
+					creature->MuzzleFlash[0].Delay = 2;
 				}
-				else if (item->HitStatus && TestProbability(0.25f) && cover)
+				else if (item->HitStatus && Random::TestProbability(0.25f) && cover)
 				{
 					item->Animation.RequiredState = MPGUN_STATE_CROUCH;
 					item->Animation.TargetState = MPGUN_STATE_WAIT;
@@ -413,10 +467,13 @@ namespace TEN::Entities::Creatures::TR3
 				if (item->Animation.RequiredState == MPGUN_STATE_WALK)
 					item->Animation.TargetState = MPGUN_STATE_WALK;
 
-				if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase + 16)
+				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 16)
 				{
 					if (!ShotLara(item, &AI, MPGunBite, extraTorsoRot.y, 32))
 						item->Animation.TargetState = MPGUN_STATE_WALK;
+
+					creature->MuzzleFlash[0].Bite = MPGunBite;
+					creature->MuzzleFlash[0].Delay = 2;
 				}
 
 				if (AI.distance < pow(SECTOR(1.5f), 2))
@@ -431,11 +488,17 @@ namespace TEN::Entities::Creatures::TR3
 					head = AI.angle;
 
 				if (Targetable(item, &AI))
+				{
 					item->Animation.TargetState = MPGUN_STATE_CROUCH_AIM;
-				else if (item->HitStatus || !cover || (AI.ahead && TestProbability(1.0f / 30)))
+				}
+				else if (item->HitStatus || !cover || (AI.ahead && Random::TestProbability(1 / 30.0f)))
+				{
 					item->Animation.TargetState = MPGUN_STATE_STAND;
+				}
 				else
+				{
 					item->Animation.TargetState = MPGUN_STATE_CROUCH_WALK;
+				}
 
 				break;
 
@@ -446,9 +509,13 @@ namespace TEN::Entities::Creatures::TR3
 					extraTorsoRot.y = AI.angle;
 
 				if (Targetable(item, &AI))
+				{
 					item->Animation.TargetState = MPGUN_STATE_CROUCH_SHOT;
+				}
 				else
+				{
 					item->Animation.TargetState = MPGUN_STATE_CROUCHED;
+				}
 
 				break;
 
@@ -456,10 +523,13 @@ namespace TEN::Entities::Creatures::TR3
 				if (AI.ahead)
 					extraTorsoRot.y = AI.angle;
 
-				if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase)
+				if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
 				{
-					if (!ShotLara(item, &AI, MPGunBite, extraTorsoRot.y, 32) || TestProbability(0.125f))
+					if (!ShotLara(item, &AI, MPGunBite, extraTorsoRot.y, 32) || Random::TestProbability(1 / 8.0f))
 						item->Animation.TargetState = MPGUN_STATE_CROUCHED;
+
+					creature->MuzzleFlash[0].Bite = MPGunBite;
+					creature->MuzzleFlash[0].Delay = 2;
 				}
 
 				break;
@@ -470,7 +540,7 @@ namespace TEN::Entities::Creatures::TR3
 				if (AI.ahead)
 					head = AI.angle;
 
-				if (Targetable(item, &AI) || item->HitStatus || !cover || (AI.ahead && TestProbability(1.0f / 30)))
+				if (Targetable(item, &AI) || item->HitStatus || !cover || (AI.ahead && Random::TestProbability(1 / 30.0f)))
 					item->Animation.TargetState = MPGUN_STATE_CROUCHED;
 
 				break;

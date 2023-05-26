@@ -5,7 +5,17 @@
 #include "Renderer/Renderer11Enums.h"
 
 enum class LaraWeaponType;
+struct CreatureBiteInfo;
 struct ItemInfo;
+
+enum BodyPartFlags
+{
+	BODY_NO_BOUNCE	   = (1 << 0),
+	BODY_GIBS		   = (1 << 1),
+	BODY_EXPLODE	   = (1 << 8),
+	BODY_NO_BOUNCE_ALT = (1 << 9),
+	BODY_STONE_SOUND   = (1 << 11)
+};
 
 struct Matrix3D
 {
@@ -74,7 +84,7 @@ struct SHOCKWAVE_STRUCT
 	unsigned char sb;
 	unsigned char life;
 	short speed;
-	short temp;
+	short sLife;
 	bool fadeIn = false;
 	int style;
 };
@@ -181,7 +191,8 @@ struct BLOOD_STRUCT
 enum class ShockwaveStyle
 {
 	Normal = 0,
-	Sophia = 1
+	Sophia = 1,
+	Knockback = 2,
 };
 
 #define ENERGY_ARC_STRAIGHT_LINE	0
@@ -196,8 +207,6 @@ extern char LaserSightCol;
 
 extern int NextFireSpark;
 extern int NextSmokeSpark;
-extern int NextBubble;
-extern int NextDrip;
 extern int NextBlood;
 extern int NextSpider;
 extern int NextGunShell;
@@ -208,21 +217,13 @@ constexpr auto MAX_SPARKS_SMOKE = 32;
 constexpr auto MAX_SPARKS_BLOOD = 32;
 constexpr auto MAX_GUNFLASH = 4;
 constexpr auto MAX_GUNSHELL = 24;
-constexpr auto MAX_DRIPS = 32;
 constexpr auto MAX_SHOCKWAVE = 16;
-
-constexpr auto BODY_NO_BOUNCE     = 0x0001;
-constexpr auto BODY_GIBS		  = 0x0002;
-constexpr auto BODY_EXPLODE		  = 0x0100;
-constexpr auto BODY_NO_BOUNCE_ALT = 0x0200;
-constexpr auto BODY_STONE_SOUND   = 0x0800;
 
 extern GUNFLASH_STRUCT Gunflashes[MAX_GUNFLASH];
 extern FIRE_SPARKS FireSparks[MAX_SPARKS_FIRE];
 extern SMOKE_SPARKS SmokeSparks[MAX_SPARKS_SMOKE];
 extern GUNSHELL_STRUCT Gunshells[MAX_GUNSHELL];
 extern BLOOD_STRUCT Blood[MAX_SPARKS_BLOOD];
-extern DRIP_STRUCT Drips[MAX_DRIPS];
 extern SHOCKWAVE_STRUCT ShockWaves[MAX_SHOCKWAVE];
 extern FIRE_LIST Fires[MAX_FIRE_LIST];
 
@@ -232,9 +233,11 @@ int GetFreeFireSpark();
 void TriggerGlobalStaticFlame();
 void TriggerGlobalFireSmoke();
 void TriggerGlobalFireFlame();
-void TriggerPilotFlame(int itemNum, int nodeIndex);
-void ThrowFire(int itemNum, int meshIndex, Vector3i offset, Vector3i speed);
-void ThrowPoison(int itemNum, int meshIndex, Vector3i offset, Vector3i speed, Vector3 color);
+void TriggerPilotFlame(int itemNumber, int nodeIndex);
+void ThrowFire(int itemNumber, int meshIndex, const Vector3i& offset, const Vector3i& vel);
+void ThrowFire(int itemNumber, const CreatureBiteInfo& bite, const Vector3i& vel);
+void ThrowPoison(int itemNumber, int meshIndex, const Vector3i& offset, const Vector3i& vel, const Vector3& color);
+void ThrowPoison(int itemNumber, const CreatureBiteInfo& bite, const Vector3i& vel, const Vector3& color);
 void UpdateFireProgress();
 void ClearFires();
 void AddFire(int x, int y, int z, short roomNum, float size, short fade);
@@ -251,13 +254,6 @@ int GetFreeGunshell();
 void TriggerGunShell(short hand, short objNum, LaraWeaponType weaponType);
 void UpdateGunShells();
 void AddWaterSparks(int x, int y, int z, int num);
-int GetFreeBubble();
-void LaraBubbles(ItemInfo* item);
-void DisableBubbles();
-void UpdateBubbles();
-int GetFreeDrip();
-void UpdateDrips();
-void TriggerLaraDrips(ItemInfo* item);
 void ExplodingDeath(short itemNumber, short flags); // EXPLODE_ flags
 int GetFreeShockwave();
 void TriggerShockwave(Pose* pos, short innerRad, short outerRad, int speed, unsigned char r, unsigned char g, unsigned char b, unsigned char life, EulerAngles rotation, short damage, bool sound, bool fadein, int style);

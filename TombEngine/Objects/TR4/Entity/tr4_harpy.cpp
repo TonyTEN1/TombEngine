@@ -14,10 +14,10 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/misc.h"
 #include "Game/people.h"
+#include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer11Enums.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 
 using namespace TEN::Math;
 using namespace TEN::Math::Random;
@@ -30,17 +30,17 @@ namespace TEN::Entities::TR4
 	constexpr auto HARPY_SWOOP_ATTACK_DAMAGE	= 10;
 	constexpr auto HARPY_STINGER_POISON_POTENCY = 8;
 
-	const auto HarpyBite1	= BiteInfo(Vector3::Zero, 4);
-	const auto HarpyBite2	= BiteInfo(Vector3::Zero, 2);
-	const auto HarpyBite3	= BiteInfo(Vector3::Zero, 15);
-	const auto HarpyAttack1 = BiteInfo(Vector3(0.0f, 128.0f, 0.0f), 2);
-	const auto HarpyAttack2 = BiteInfo(Vector3(0.0f, 128.0f, 0.0f), 4);
-	const vector<unsigned int> HarpySwoopAttackJoints   = { 2, 4, 15 };
-	const vector<unsigned int> HarpyStingerAttackJoints = { 2, 4 };
+	const auto HarpyBite1	= CreatureBiteInfo(Vector3i::Zero, 4);
+	const auto HarpyBite2	= CreatureBiteInfo(Vector3i::Zero, 2);
+	const auto HarpyBite3	= CreatureBiteInfo(Vector3i::Zero, 15);
+	const auto HarpyAttack1 = CreatureBiteInfo(Vector3i(0, 128, 0), 2);
+	const auto HarpyAttack2 = CreatureBiteInfo(Vector3i(0, 128, 0), 4);
+	const auto HarpySwoopAttackJoints   = std::vector<unsigned int>{ 2, 4, 15 };
+	const auto HarpyStingerAttackJoints = std::vector<unsigned int>{ 2, 4 };
 
 	enum HarpyState
 	{
-		HARPY_STATE_NONE = 0,
+		// No state 0.
 		HARPY_STATE_IDLE = 1,
 		HARPY_STATE_FLY_FORWARD = 2,
 		HARPY_STATE_FLY_DOWN = 3,
@@ -105,8 +105,8 @@ namespace TEN::Entities::TR4
 	{
 		item->ItemFlags[0]++;
 
-		auto rh = GetJointPosition(item, HarpyAttack1.meshNum, Vector3i(HarpyAttack1.Position));
-		auto lr = GetJointPosition(item, HarpyAttack2.meshNum, Vector3i(HarpyAttack2.Position));
+		auto rh = GetJointPosition(item, HarpyAttack1);
+		auto lr = GetJointPosition(item, HarpyAttack2);
 
 		int sG = (GetRandomControl() & 0x7F) + 32;
 		int sR = sG;
@@ -149,7 +149,7 @@ namespace TEN::Entities::TR4
 		{
 			if (item->ItemFlags[0] <= 65 && GlobalCounter & 1)
 			{
-				auto pos3 = GetJointPosition(item, HarpyAttack1.meshNum, Vector3i(HarpyAttack1.Position.x, HarpyAttack1.Position.y * 2, HarpyAttack1.Position.z));
+				auto pos3 = GetJointPosition(item, HarpyAttack1.BoneID, Vector3i(HarpyAttack1.Position.x, HarpyAttack1.Position.y * 2, HarpyAttack1.Position.z));
 				auto orient = Geometry::GetOrientToPoint(lr.ToVector3(), rh.ToVector3());
 				auto pose = Pose(rh, orient);
 				TriggerHarpyMissile(&pose, item->RoomNumber, 2);
@@ -157,7 +157,7 @@ namespace TEN::Entities::TR4
 
 			if (item->ItemFlags[0] >= 61 && item->ItemFlags[0] <= 65 && !(GlobalCounter & 1))
 			{
-				auto pos3 = GetJointPosition(item, HarpyAttack2.meshNum, Vector3i(HarpyAttack2.Position.x, HarpyAttack2.Position.y * 2, HarpyAttack2.Position.z));
+				auto pos3 = GetJointPosition(item, HarpyAttack2.BoneID, Vector3i(HarpyAttack2.Position.x, HarpyAttack2.Position.y * 2, HarpyAttack2.Position.z));
 				auto orient = Geometry::GetOrientToPoint(lr.ToVector3(), rh.ToVector3());
 				auto pose = Pose(rh, orient);
 				TriggerHarpyMissile(&pose, item->RoomNumber, 2);
@@ -165,10 +165,10 @@ namespace TEN::Entities::TR4
 		}
 	}
 
-	void InitialiseHarpy(short itemNumber)
+	void InitializeHarpy(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 		SetAnimation(item, HARPY_ANIM_IDLE);
 	}
 
@@ -322,7 +322,7 @@ namespace TEN::Entities::TR4
 				if (creature->Enemy != LaraItem ||
 					!Targetable(item, &AI) ||
 					AI.distance <= SQUARE(BLOCK(3.5f)) ||
-					TestProbability(0.5f))
+					Random::TestProbability(1 / 2.0f))
 				{
 					item->Animation.TargetState = HARPY_STATE_FLY_FORWARD;
 					break;
@@ -336,7 +336,7 @@ namespace TEN::Entities::TR4
 				creature->MaxTurn = ANGLE(7.0f);
 				creature->Flags = 0;
 
-				if (item->Animation.RequiredState)
+				if (item->Animation.RequiredState != NO_STATE)
 				{
 					item->Animation.TargetState = item->Animation.RequiredState;
 					if (item->Animation.RequiredState == HARPY_STATE_FLAME_ATTACK)
@@ -355,7 +355,7 @@ namespace TEN::Entities::TR4
 				{
 					if (AI.distance >= SQUARE(341))
 					{
-						if (AI.ahead && TestProbability(0.5f) &&
+						if (AI.ahead && Random::TestProbability(1 / 2.0f) &&
 							AI.distance >= SQUARE(BLOCK(2)) &&
 							AI.distance > SQUARE(BLOCK(3.5f)))
 						{
@@ -371,7 +371,7 @@ namespace TEN::Entities::TR4
 					break;
 				}
 
-				if (TestProbability(0.5f))
+				if (Random::TestProbability(1 / 2.0f))
 				{
 					item->Animation.TargetState = HARPY_STATE_FLY_FORWARD_SPIN;
 					break;
@@ -387,7 +387,7 @@ namespace TEN::Entities::TR4
 				{
 					if (AI.ahead && AI.distance >= SQUARE(BLOCK(2)) &&
 						AI.distance > SQUARE(BLOCK(3.5f)) &&
-						TestProbability(0.5f))
+						Random::TestProbability(1 / 2.0f))
 					{
 						item->Animation.TargetState = HARPY_STATE_FLAME_ATTACK;
 						item->ItemFlags[0] = 0;
@@ -446,12 +446,12 @@ namespace TEN::Entities::TR4
 						creature->Enemy != nullptr &&
 						abs(creature->Enemy->Pose.Position.y - item->Pose.Position.y) <= BLOCK(1) &&
 						AI.distance < SQUARE(BLOCK(2)) &&
-						item->Animation.ActiveState == HARPY_STATE_STINGER_ATTACK &&
-						item->Animation.FrameNumber > g_Level.Anims[item->Animation.AnimNumber].frameBase + 17)
+						item->Animation.AnimNumber == GetAnimIndex(*item, HARPY_ANIM_STINGER_ATTACK) &&
+						item->Animation.FrameNumber > GetFrameIndex(item, 17))
 					)
 				{
 					if (creature->Enemy->IsLara())
-						GetLaraInfo(creature->Enemy)->PoisonPotency += HARPY_STINGER_POISON_POTENCY;
+						GetLaraInfo(creature->Enemy)->Status.Poison += HARPY_STINGER_POISON_POTENCY;
 
 					DoDamage(creature->Enemy, HARPY_STINGER_ATTACK_DAMAGE);
 					CreatureEffect2(item, HarpyBite3, 10, -1, DoBloodSplat);
@@ -470,7 +470,7 @@ namespace TEN::Entities::TR4
 					item->Animation.TargetState = HARPY_STATE_FLY_FORWARD;
 					item->Animation.RequiredState = HARPY_STATE_FLAME_ATTACK;
 				}
-				else if (TestProbability(0.5f))
+				else if (Random::TestProbability(1 / 2.0f))
 					item->Animation.TargetState = HARPY_STATE_IDLE;
 
 				break;

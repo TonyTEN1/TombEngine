@@ -81,6 +81,14 @@ struct LaraControlData;
 struct LaraControlDataBuilder;
 struct LaraControlDataT;
 
+struct PlayerEffectData;
+struct PlayerEffectDataBuilder;
+struct PlayerEffectDataT;
+
+struct PlayerStatusData;
+struct PlayerStatusDataBuilder;
+struct PlayerStatusDataT;
+
 struct Lara;
 struct LaraBuilder;
 struct LaraT;
@@ -146,6 +154,10 @@ struct doubleTableT;
 struct boolTable;
 struct boolTableBuilder;
 struct boolTableT;
+
+struct vec2Table;
+struct vec2TableBuilder;
+struct vec2TableT;
 
 struct vec3Table;
 struct vec3TableBuilder;
@@ -225,21 +237,23 @@ enum class VarUnion : uint8_t {
   tab = 2,
   num = 3,
   boolean = 4,
-  vec3 = 5,
-  rotation = 6,
-  color = 7,
-  funcName = 8,
+  vec2 = 5,
+  vec3 = 6,
+  rotation = 7,
+  color = 8,
+  funcName = 9,
   MIN = NONE,
   MAX = funcName
 };
 
-inline const VarUnion (&EnumValuesVarUnion())[9] {
+inline const VarUnion (&EnumValuesVarUnion())[10] {
   static const VarUnion values[] = {
     VarUnion::NONE,
     VarUnion::str,
     VarUnion::tab,
     VarUnion::num,
     VarUnion::boolean,
+    VarUnion::vec2,
     VarUnion::vec3,
     VarUnion::rotation,
     VarUnion::color,
@@ -249,12 +263,13 @@ inline const VarUnion (&EnumValuesVarUnion())[9] {
 }
 
 inline const char * const *EnumNamesVarUnion() {
-  static const char * const names[10] = {
+  static const char * const names[11] = {
     "NONE",
     "str",
     "tab",
     "num",
     "boolean",
+    "vec2",
     "vec3",
     "rotation",
     "color",
@@ -288,6 +303,10 @@ template<> struct VarUnionTraits<TEN::Save::doubleTable> {
 
 template<> struct VarUnionTraits<TEN::Save::boolTable> {
   static const VarUnion enum_value = VarUnion::boolean;
+};
+
+template<> struct VarUnionTraits<TEN::Save::vec2Table> {
+  static const VarUnion enum_value = VarUnion::vec2;
 };
 
 template<> struct VarUnionTraits<TEN::Save::vec3Table> {
@@ -369,6 +388,14 @@ struct VarUnionUnion {
   const TEN::Save::boolTableT *Asboolean() const {
     return type == VarUnion::boolean ?
       reinterpret_cast<const TEN::Save::boolTableT *>(value) : nullptr;
+  }
+  TEN::Save::vec2TableT *Asvec2() {
+    return type == VarUnion::vec2 ?
+      reinterpret_cast<TEN::Save::vec2TableT *>(value) : nullptr;
+  }
+  const TEN::Save::vec2TableT *Asvec2() const {
+    return type == VarUnion::vec2 ?
+      reinterpret_cast<const TEN::Save::vec2TableT *>(value) : nullptr;
   }
   TEN::Save::vec3TableT *Asvec3() {
     return type == VarUnion::vec3 ?
@@ -3570,8 +3597,184 @@ struct LaraControlData::Traits {
 
 flatbuffers::Offset<LaraControlData> CreateLaraControlData(flatbuffers::FlatBufferBuilder &_fbb, const LaraControlDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct PlayerEffectDataT : public flatbuffers::NativeTable {
+  typedef PlayerEffectData TableType;
+  std::vector<float> bubble_nodes{};
+  std::vector<float> drip_nodes{};
+};
+
+struct PlayerEffectData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PlayerEffectDataT NativeTableType;
+  typedef PlayerEffectDataBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_BUBBLE_NODES = 4,
+    VT_DRIP_NODES = 6
+  };
+  const flatbuffers::Vector<float> *bubble_nodes() const {
+    return GetPointer<const flatbuffers::Vector<float> *>(VT_BUBBLE_NODES);
+  }
+  const flatbuffers::Vector<float> *drip_nodes() const {
+    return GetPointer<const flatbuffers::Vector<float> *>(VT_DRIP_NODES);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_BUBBLE_NODES) &&
+           verifier.VerifyVector(bubble_nodes()) &&
+           VerifyOffset(verifier, VT_DRIP_NODES) &&
+           verifier.VerifyVector(drip_nodes()) &&
+           verifier.EndTable();
+  }
+  PlayerEffectDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PlayerEffectDataT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PlayerEffectData> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PlayerEffectDataT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PlayerEffectDataBuilder {
+  typedef PlayerEffectData Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_bubble_nodes(flatbuffers::Offset<flatbuffers::Vector<float>> bubble_nodes) {
+    fbb_.AddOffset(PlayerEffectData::VT_BUBBLE_NODES, bubble_nodes);
+  }
+  void add_drip_nodes(flatbuffers::Offset<flatbuffers::Vector<float>> drip_nodes) {
+    fbb_.AddOffset(PlayerEffectData::VT_DRIP_NODES, drip_nodes);
+  }
+  explicit PlayerEffectDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PlayerEffectData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PlayerEffectData>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PlayerEffectData> CreatePlayerEffectData(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<float>> bubble_nodes = 0,
+    flatbuffers::Offset<flatbuffers::Vector<float>> drip_nodes = 0) {
+  PlayerEffectDataBuilder builder_(_fbb);
+  builder_.add_drip_nodes(drip_nodes);
+  builder_.add_bubble_nodes(bubble_nodes);
+  return builder_.Finish();
+}
+
+struct PlayerEffectData::Traits {
+  using type = PlayerEffectData;
+  static auto constexpr Create = CreatePlayerEffectData;
+};
+
+inline flatbuffers::Offset<PlayerEffectData> CreatePlayerEffectDataDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<float> *bubble_nodes = nullptr,
+    const std::vector<float> *drip_nodes = nullptr) {
+  auto bubble_nodes__ = bubble_nodes ? _fbb.CreateVector<float>(*bubble_nodes) : 0;
+  auto drip_nodes__ = drip_nodes ? _fbb.CreateVector<float>(*drip_nodes) : 0;
+  return TEN::Save::CreatePlayerEffectData(
+      _fbb,
+      bubble_nodes__,
+      drip_nodes__);
+}
+
+flatbuffers::Offset<PlayerEffectData> CreatePlayerEffectData(flatbuffers::FlatBufferBuilder &_fbb, const PlayerEffectDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PlayerStatusDataT : public flatbuffers::NativeTable {
+  typedef PlayerStatusData TableType;
+  int32_t air = 0;
+  int32_t exposure = 0;
+  int32_t poison = 0;
+  int32_t stamina = 0;
+};
+
+struct PlayerStatusData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PlayerStatusDataT NativeTableType;
+  typedef PlayerStatusDataBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_AIR = 4,
+    VT_EXPOSURE = 6,
+    VT_POISON = 8,
+    VT_STAMINA = 10
+  };
+  int32_t air() const {
+    return GetField<int32_t>(VT_AIR, 0);
+  }
+  int32_t exposure() const {
+    return GetField<int32_t>(VT_EXPOSURE, 0);
+  }
+  int32_t poison() const {
+    return GetField<int32_t>(VT_POISON, 0);
+  }
+  int32_t stamina() const {
+    return GetField<int32_t>(VT_STAMINA, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_AIR) &&
+           VerifyField<int32_t>(verifier, VT_EXPOSURE) &&
+           VerifyField<int32_t>(verifier, VT_POISON) &&
+           VerifyField<int32_t>(verifier, VT_STAMINA) &&
+           verifier.EndTable();
+  }
+  PlayerStatusDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PlayerStatusDataT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PlayerStatusData> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PlayerStatusDataT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PlayerStatusDataBuilder {
+  typedef PlayerStatusData Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_air(int32_t air) {
+    fbb_.AddElement<int32_t>(PlayerStatusData::VT_AIR, air, 0);
+  }
+  void add_exposure(int32_t exposure) {
+    fbb_.AddElement<int32_t>(PlayerStatusData::VT_EXPOSURE, exposure, 0);
+  }
+  void add_poison(int32_t poison) {
+    fbb_.AddElement<int32_t>(PlayerStatusData::VT_POISON, poison, 0);
+  }
+  void add_stamina(int32_t stamina) {
+    fbb_.AddElement<int32_t>(PlayerStatusData::VT_STAMINA, stamina, 0);
+  }
+  explicit PlayerStatusDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PlayerStatusData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PlayerStatusData>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PlayerStatusData> CreatePlayerStatusData(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t air = 0,
+    int32_t exposure = 0,
+    int32_t poison = 0,
+    int32_t stamina = 0) {
+  PlayerStatusDataBuilder builder_(_fbb);
+  builder_.add_stamina(stamina);
+  builder_.add_poison(poison);
+  builder_.add_exposure(exposure);
+  builder_.add_air(air);
+  return builder_.Finish();
+}
+
+struct PlayerStatusData::Traits {
+  using type = PlayerStatusData;
+  static auto constexpr Create = CreatePlayerStatusData;
+};
+
+flatbuffers::Offset<PlayerStatusData> CreatePlayerStatusData(flatbuffers::FlatBufferBuilder &_fbb, const PlayerStatusDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct LaraT : public flatbuffers::NativeTable {
   typedef Lara TableType;
+  std::unique_ptr<TEN::Save::PlayerEffectDataT> effect{};
+  std::unique_ptr<TEN::Save::PlayerStatusDataT> status{};
   int32_t item_number = 0;
   std::unique_ptr<TEN::Save::LaraControlDataT> control{};
   std::unique_ptr<TEN::Save::LaraInventoryDataT> inventory{};
@@ -3586,9 +3789,6 @@ struct LaraT : public flatbuffers::NativeTable {
   std::unique_ptr<TEN::Save::ArmInfoT> right_arm{};
   std::vector<int32_t> target_arm_angles{};
   int32_t target_entity_number = 0;
-  int32_t air = 0;
-  int32_t sprint_energy = 0;
-  int32_t poison_potency = 0;
   int32_t vehicle = 0;
   int32_t extra_anim = 0;
   int32_t hit_frame = 0;
@@ -3603,7 +3803,6 @@ struct LaraT : public flatbuffers::NativeTable {
   bool burn = false;
   int32_t burn_blue = 0;
   bool burn_smoke = false;
-  std::vector<bool> wet{};
   int32_t location = 0;
   int32_t highest_location = 0;
   int32_t location_pad = 0;
@@ -3614,42 +3813,46 @@ struct Lara FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LaraBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_ITEM_NUMBER = 4,
-    VT_CONTROL = 6,
-    VT_INVENTORY = 8,
-    VT_WEAPONS = 10,
-    VT_FLARE = 12,
-    VT_TORCH = 14,
-    VT_EXTRA_HEAD_ROT = 16,
-    VT_EXTRA_TORSO_ROT = 18,
-    VT_WATER_CURRENT_ACTIVE = 20,
-    VT_WATER_CURRENT_PULL = 22,
-    VT_LEFT_ARM = 24,
-    VT_RIGHT_ARM = 26,
-    VT_TARGET_ARM_ANGLES = 28,
-    VT_TARGET_ENTITY_NUMBER = 30,
-    VT_AIR = 32,
-    VT_SPRINT_ENERGY = 34,
-    VT_POISON_POTENCY = 36,
-    VT_VEHICLE = 38,
-    VT_EXTRA_ANIM = 40,
-    VT_HIT_FRAME = 42,
-    VT_HIT_DIRECTION = 44,
-    VT_PROJECTED_FLOOR_HEIGHT = 46,
-    VT_TARGET_FACING_ANGLE = 48,
-    VT_WATER_SURFACE_DIST = 50,
-    VT_INTERACTED_ITEM = 52,
-    VT_NEXT_CORNER_POSE = 54,
-    VT_BURN_TYPE = 56,
-    VT_BURN_COUNT = 58,
-    VT_BURN = 60,
-    VT_BURN_BLUE = 62,
-    VT_BURN_SMOKE = 64,
-    VT_WET = 66,
-    VT_LOCATION = 68,
-    VT_HIGHEST_LOCATION = 70,
-    VT_LOCATION_PAD = 72
+    VT_EFFECT = 4,
+    VT_STATUS = 6,
+    VT_ITEM_NUMBER = 8,
+    VT_CONTROL = 10,
+    VT_INVENTORY = 12,
+    VT_WEAPONS = 14,
+    VT_FLARE = 16,
+    VT_TORCH = 18,
+    VT_EXTRA_HEAD_ROT = 20,
+    VT_EXTRA_TORSO_ROT = 22,
+    VT_WATER_CURRENT_ACTIVE = 24,
+    VT_WATER_CURRENT_PULL = 26,
+    VT_LEFT_ARM = 28,
+    VT_RIGHT_ARM = 30,
+    VT_TARGET_ARM_ANGLES = 32,
+    VT_TARGET_ENTITY_NUMBER = 34,
+    VT_VEHICLE = 36,
+    VT_EXTRA_ANIM = 38,
+    VT_HIT_FRAME = 40,
+    VT_HIT_DIRECTION = 42,
+    VT_PROJECTED_FLOOR_HEIGHT = 44,
+    VT_TARGET_FACING_ANGLE = 46,
+    VT_WATER_SURFACE_DIST = 48,
+    VT_INTERACTED_ITEM = 50,
+    VT_NEXT_CORNER_POSE = 52,
+    VT_BURN_TYPE = 54,
+    VT_BURN_COUNT = 56,
+    VT_BURN = 58,
+    VT_BURN_BLUE = 60,
+    VT_BURN_SMOKE = 62,
+    VT_LOCATION = 64,
+    VT_HIGHEST_LOCATION = 66,
+    VT_LOCATION_PAD = 68
   };
+  const TEN::Save::PlayerEffectData *effect() const {
+    return GetPointer<const TEN::Save::PlayerEffectData *>(VT_EFFECT);
+  }
+  const TEN::Save::PlayerStatusData *status() const {
+    return GetPointer<const TEN::Save::PlayerStatusData *>(VT_STATUS);
+  }
   int32_t item_number() const {
     return GetField<int32_t>(VT_ITEM_NUMBER, 0);
   }
@@ -3691,15 +3894,6 @@ struct Lara FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int32_t target_entity_number() const {
     return GetField<int32_t>(VT_TARGET_ENTITY_NUMBER, 0);
-  }
-  int32_t air() const {
-    return GetField<int32_t>(VT_AIR, 0);
-  }
-  int32_t sprint_energy() const {
-    return GetField<int32_t>(VT_SPRINT_ENERGY, 0);
-  }
-  int32_t poison_potency() const {
-    return GetField<int32_t>(VT_POISON_POTENCY, 0);
   }
   int32_t vehicle() const {
     return GetField<int32_t>(VT_VEHICLE, 0);
@@ -3743,9 +3937,6 @@ struct Lara FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool burn_smoke() const {
     return GetField<uint8_t>(VT_BURN_SMOKE, 0) != 0;
   }
-  const flatbuffers::Vector<uint8_t> *wet() const {
-    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_WET);
-  }
   int32_t location() const {
     return GetField<int32_t>(VT_LOCATION, 0);
   }
@@ -3757,6 +3948,10 @@ struct Lara FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_EFFECT) &&
+           verifier.VerifyTable(effect()) &&
+           VerifyOffset(verifier, VT_STATUS) &&
+           verifier.VerifyTable(status()) &&
            VerifyField<int32_t>(verifier, VT_ITEM_NUMBER) &&
            VerifyOffset(verifier, VT_CONTROL) &&
            verifier.VerifyTable(control()) &&
@@ -3780,9 +3975,6 @@ struct Lara FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_TARGET_ARM_ANGLES) &&
            verifier.VerifyVector(target_arm_angles()) &&
            VerifyField<int32_t>(verifier, VT_TARGET_ENTITY_NUMBER) &&
-           VerifyField<int32_t>(verifier, VT_AIR) &&
-           VerifyField<int32_t>(verifier, VT_SPRINT_ENERGY) &&
-           VerifyField<int32_t>(verifier, VT_POISON_POTENCY) &&
            VerifyField<int32_t>(verifier, VT_VEHICLE) &&
            VerifyField<int32_t>(verifier, VT_EXTRA_ANIM) &&
            VerifyField<int32_t>(verifier, VT_HIT_FRAME) &&
@@ -3797,8 +3989,6 @@ struct Lara FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_BURN) &&
            VerifyField<int32_t>(verifier, VT_BURN_BLUE) &&
            VerifyField<uint8_t>(verifier, VT_BURN_SMOKE) &&
-           VerifyOffset(verifier, VT_WET) &&
-           verifier.VerifyVector(wet()) &&
            VerifyField<int32_t>(verifier, VT_LOCATION) &&
            VerifyField<int32_t>(verifier, VT_HIGHEST_LOCATION) &&
            VerifyField<int32_t>(verifier, VT_LOCATION_PAD) &&
@@ -3813,6 +4003,12 @@ struct LaraBuilder {
   typedef Lara Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_effect(flatbuffers::Offset<TEN::Save::PlayerEffectData> effect) {
+    fbb_.AddOffset(Lara::VT_EFFECT, effect);
+  }
+  void add_status(flatbuffers::Offset<TEN::Save::PlayerStatusData> status) {
+    fbb_.AddOffset(Lara::VT_STATUS, status);
+  }
   void add_item_number(int32_t item_number) {
     fbb_.AddElement<int32_t>(Lara::VT_ITEM_NUMBER, item_number, 0);
   }
@@ -3854,15 +4050,6 @@ struct LaraBuilder {
   }
   void add_target_entity_number(int32_t target_entity_number) {
     fbb_.AddElement<int32_t>(Lara::VT_TARGET_ENTITY_NUMBER, target_entity_number, 0);
-  }
-  void add_air(int32_t air) {
-    fbb_.AddElement<int32_t>(Lara::VT_AIR, air, 0);
-  }
-  void add_sprint_energy(int32_t sprint_energy) {
-    fbb_.AddElement<int32_t>(Lara::VT_SPRINT_ENERGY, sprint_energy, 0);
-  }
-  void add_poison_potency(int32_t poison_potency) {
-    fbb_.AddElement<int32_t>(Lara::VT_POISON_POTENCY, poison_potency, 0);
   }
   void add_vehicle(int32_t vehicle) {
     fbb_.AddElement<int32_t>(Lara::VT_VEHICLE, vehicle, 0);
@@ -3906,9 +4093,6 @@ struct LaraBuilder {
   void add_burn_smoke(bool burn_smoke) {
     fbb_.AddElement<uint8_t>(Lara::VT_BURN_SMOKE, static_cast<uint8_t>(burn_smoke), 0);
   }
-  void add_wet(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> wet) {
-    fbb_.AddOffset(Lara::VT_WET, wet);
-  }
   void add_location(int32_t location) {
     fbb_.AddElement<int32_t>(Lara::VT_LOCATION, location, 0);
   }
@@ -3931,6 +4115,8 @@ struct LaraBuilder {
 
 inline flatbuffers::Offset<Lara> CreateLara(
     flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<TEN::Save::PlayerEffectData> effect = 0,
+    flatbuffers::Offset<TEN::Save::PlayerStatusData> status = 0,
     int32_t item_number = 0,
     flatbuffers::Offset<TEN::Save::LaraControlData> control = 0,
     flatbuffers::Offset<TEN::Save::LaraInventoryData> inventory = 0,
@@ -3945,9 +4131,6 @@ inline flatbuffers::Offset<Lara> CreateLara(
     flatbuffers::Offset<TEN::Save::ArmInfo> right_arm = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> target_arm_angles = 0,
     int32_t target_entity_number = 0,
-    int32_t air = 0,
-    int32_t sprint_energy = 0,
-    int32_t poison_potency = 0,
     int32_t vehicle = 0,
     int32_t extra_anim = 0,
     int32_t hit_frame = 0,
@@ -3962,7 +4145,6 @@ inline flatbuffers::Offset<Lara> CreateLara(
     bool burn = false,
     int32_t burn_blue = 0,
     bool burn_smoke = false,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> wet = 0,
     int32_t location = 0,
     int32_t highest_location = 0,
     int32_t location_pad = 0) {
@@ -3970,7 +4152,6 @@ inline flatbuffers::Offset<Lara> CreateLara(
   builder_.add_location_pad(location_pad);
   builder_.add_highest_location(highest_location);
   builder_.add_location(location);
-  builder_.add_wet(wet);
   builder_.add_burn_blue(burn_blue);
   builder_.add_burn_count(burn_count);
   builder_.add_burn_type(burn_type);
@@ -3983,9 +4164,6 @@ inline flatbuffers::Offset<Lara> CreateLara(
   builder_.add_hit_frame(hit_frame);
   builder_.add_extra_anim(extra_anim);
   builder_.add_vehicle(vehicle);
-  builder_.add_poison_potency(poison_potency);
-  builder_.add_sprint_energy(sprint_energy);
-  builder_.add_air(air);
   builder_.add_target_entity_number(target_entity_number);
   builder_.add_target_arm_angles(target_arm_angles);
   builder_.add_right_arm(right_arm);
@@ -4000,6 +4178,8 @@ inline flatbuffers::Offset<Lara> CreateLara(
   builder_.add_inventory(inventory);
   builder_.add_control(control);
   builder_.add_item_number(item_number);
+  builder_.add_status(status);
+  builder_.add_effect(effect);
   builder_.add_burn_smoke(burn_smoke);
   builder_.add_burn(burn);
   return builder_.Finish();
@@ -4012,6 +4192,8 @@ struct Lara::Traits {
 
 inline flatbuffers::Offset<Lara> CreateLaraDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<TEN::Save::PlayerEffectData> effect = 0,
+    flatbuffers::Offset<TEN::Save::PlayerStatusData> status = 0,
     int32_t item_number = 0,
     flatbuffers::Offset<TEN::Save::LaraControlData> control = 0,
     flatbuffers::Offset<TEN::Save::LaraInventoryData> inventory = 0,
@@ -4026,9 +4208,6 @@ inline flatbuffers::Offset<Lara> CreateLaraDirect(
     flatbuffers::Offset<TEN::Save::ArmInfo> right_arm = 0,
     const std::vector<int32_t> *target_arm_angles = nullptr,
     int32_t target_entity_number = 0,
-    int32_t air = 0,
-    int32_t sprint_energy = 0,
-    int32_t poison_potency = 0,
     int32_t vehicle = 0,
     int32_t extra_anim = 0,
     int32_t hit_frame = 0,
@@ -4043,15 +4222,15 @@ inline flatbuffers::Offset<Lara> CreateLaraDirect(
     bool burn = false,
     int32_t burn_blue = 0,
     bool burn_smoke = false,
-    const std::vector<uint8_t> *wet = nullptr,
     int32_t location = 0,
     int32_t highest_location = 0,
     int32_t location_pad = 0) {
   auto weapons__ = weapons ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>>(*weapons) : 0;
   auto target_arm_angles__ = target_arm_angles ? _fbb.CreateVector<int32_t>(*target_arm_angles) : 0;
-  auto wet__ = wet ? _fbb.CreateVector<uint8_t>(*wet) : 0;
   return TEN::Save::CreateLara(
       _fbb,
+      effect,
+      status,
       item_number,
       control,
       inventory,
@@ -4066,9 +4245,6 @@ inline flatbuffers::Offset<Lara> CreateLaraDirect(
       right_arm,
       target_arm_angles__,
       target_entity_number,
-      air,
-      sprint_energy,
-      poison_potency,
       vehicle,
       extra_anim,
       hit_frame,
@@ -4083,7 +4259,6 @@ inline flatbuffers::Offset<Lara> CreateLaraDirect(
       burn,
       burn_blue,
       burn_smoke,
-      wet__,
       location,
       highest_location,
       location_pad);
@@ -5768,6 +5943,64 @@ struct boolTable::Traits {
 
 flatbuffers::Offset<boolTable> CreateboolTable(flatbuffers::FlatBufferBuilder &_fbb, const boolTableT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct vec2TableT : public flatbuffers::NativeTable {
+  typedef vec2Table TableType;
+  std::unique_ptr<TEN::Save::Vector2> vec{};
+};
+
+struct vec2Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef vec2TableT NativeTableType;
+  typedef vec2TableBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_VEC = 4
+  };
+  const TEN::Save::Vector2 *vec() const {
+    return GetStruct<const TEN::Save::Vector2 *>(VT_VEC);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<TEN::Save::Vector2>(verifier, VT_VEC) &&
+           verifier.EndTable();
+  }
+  vec2TableT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(vec2TableT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<vec2Table> Pack(flatbuffers::FlatBufferBuilder &_fbb, const vec2TableT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct vec2TableBuilder {
+  typedef vec2Table Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_vec(const TEN::Save::Vector2 *vec) {
+    fbb_.AddStruct(vec2Table::VT_VEC, vec);
+  }
+  explicit vec2TableBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<vec2Table> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<vec2Table>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<vec2Table> Createvec2Table(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const TEN::Save::Vector2 *vec = 0) {
+  vec2TableBuilder builder_(_fbb);
+  builder_.add_vec(vec);
+  return builder_.Finish();
+}
+
+struct vec2Table::Traits {
+  using type = vec2Table;
+  static auto constexpr Create = Createvec2Table;
+};
+
+flatbuffers::Offset<vec2Table> Createvec2Table(flatbuffers::FlatBufferBuilder &_fbb, const vec2TableT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct vec3TableT : public flatbuffers::NativeTable {
   typedef vec3Table TableType;
   std::unique_ptr<TEN::Save::Vector3> vec{};
@@ -6042,6 +6275,9 @@ struct UnionTable FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const TEN::Save::boolTable *u_as_boolean() const {
     return u_type() == TEN::Save::VarUnion::boolean ? static_cast<const TEN::Save::boolTable *>(u()) : nullptr;
   }
+  const TEN::Save::vec2Table *u_as_vec2() const {
+    return u_type() == TEN::Save::VarUnion::vec2 ? static_cast<const TEN::Save::vec2Table *>(u()) : nullptr;
+  }
   const TEN::Save::vec3Table *u_as_vec3() const {
     return u_type() == TEN::Save::VarUnion::vec3 ? static_cast<const TEN::Save::vec3Table *>(u()) : nullptr;
   }
@@ -6080,6 +6316,10 @@ template<> inline const TEN::Save::doubleTable *UnionTable::u_as<TEN::Save::doub
 
 template<> inline const TEN::Save::boolTable *UnionTable::u_as<TEN::Save::boolTable>() const {
   return u_as_boolean();
+}
+
+template<> inline const TEN::Save::vec2Table *UnionTable::u_as<TEN::Save::vec2Table>() const {
+  return u_as_vec2();
 }
 
 template<> inline const TEN::Save::vec3Table *UnionTable::u_as<TEN::Save::vec3Table>() const {
@@ -6529,6 +6769,14 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Save::VolumeT>> volumes{};
   std::vector<std::unique_ptr<TEN::Save::EventSetCallCountersT>> call_counters{};
   std::unique_ptr<TEN::Save::UnionVecT> script_vars{};
+  std::vector<std::string> callbacks_pre_start{};
+  std::vector<std::string> callbacks_post_start{};
+  std::vector<std::string> callbacks_pre_end{};
+  std::vector<std::string> callbacks_post_end{};
+  std::vector<std::string> callbacks_pre_save{};
+  std::vector<std::string> callbacks_post_save{};
+  std::vector<std::string> callbacks_pre_load{};
+  std::vector<std::string> callbacks_post_load{};
   std::vector<std::string> callbacks_pre_control{};
   std::vector<std::string> callbacks_post_control{};
 };
@@ -6577,8 +6825,16 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_VOLUMES = 76,
     VT_CALL_COUNTERS = 78,
     VT_SCRIPT_VARS = 80,
-    VT_CALLBACKS_PRE_CONTROL = 82,
-    VT_CALLBACKS_POST_CONTROL = 84
+    VT_CALLBACKS_PRE_START = 82,
+    VT_CALLBACKS_POST_START = 84,
+    VT_CALLBACKS_PRE_END = 86,
+    VT_CALLBACKS_POST_END = 88,
+    VT_CALLBACKS_PRE_SAVE = 90,
+    VT_CALLBACKS_POST_SAVE = 92,
+    VT_CALLBACKS_PRE_LOAD = 94,
+    VT_CALLBACKS_POST_LOAD = 96,
+    VT_CALLBACKS_PRE_CONTROL = 98,
+    VT_CALLBACKS_POST_CONTROL = 100
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
@@ -6697,6 +6953,30 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const TEN::Save::UnionVec *script_vars() const {
     return GetPointer<const TEN::Save::UnionVec *>(VT_SCRIPT_VARS);
   }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_start() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_PRE_START);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_start() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_POST_START);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_end() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_PRE_END);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_end() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_POST_END);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_save() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_PRE_SAVE);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_save() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_POST_SAVE);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_load() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_PRE_LOAD);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_load() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_POST_LOAD);
+  }
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_control() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_PRE_CONTROL);
   }
@@ -6787,6 +7067,30 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(call_counters()) &&
            VerifyOffset(verifier, VT_SCRIPT_VARS) &&
            verifier.VerifyTable(script_vars()) &&
+           VerifyOffset(verifier, VT_CALLBACKS_PRE_START) &&
+           verifier.VerifyVector(callbacks_pre_start()) &&
+           verifier.VerifyVectorOfStrings(callbacks_pre_start()) &&
+           VerifyOffset(verifier, VT_CALLBACKS_POST_START) &&
+           verifier.VerifyVector(callbacks_post_start()) &&
+           verifier.VerifyVectorOfStrings(callbacks_post_start()) &&
+           VerifyOffset(verifier, VT_CALLBACKS_PRE_END) &&
+           verifier.VerifyVector(callbacks_pre_end()) &&
+           verifier.VerifyVectorOfStrings(callbacks_pre_end()) &&
+           VerifyOffset(verifier, VT_CALLBACKS_POST_END) &&
+           verifier.VerifyVector(callbacks_post_end()) &&
+           verifier.VerifyVectorOfStrings(callbacks_post_end()) &&
+           VerifyOffset(verifier, VT_CALLBACKS_PRE_SAVE) &&
+           verifier.VerifyVector(callbacks_pre_save()) &&
+           verifier.VerifyVectorOfStrings(callbacks_pre_save()) &&
+           VerifyOffset(verifier, VT_CALLBACKS_POST_SAVE) &&
+           verifier.VerifyVector(callbacks_post_save()) &&
+           verifier.VerifyVectorOfStrings(callbacks_post_save()) &&
+           VerifyOffset(verifier, VT_CALLBACKS_PRE_LOAD) &&
+           verifier.VerifyVector(callbacks_pre_load()) &&
+           verifier.VerifyVectorOfStrings(callbacks_pre_load()) &&
+           VerifyOffset(verifier, VT_CALLBACKS_POST_LOAD) &&
+           verifier.VerifyVector(callbacks_post_load()) &&
+           verifier.VerifyVectorOfStrings(callbacks_post_load()) &&
            VerifyOffset(verifier, VT_CALLBACKS_PRE_CONTROL) &&
            verifier.VerifyVector(callbacks_pre_control()) &&
            verifier.VerifyVectorOfStrings(callbacks_pre_control()) &&
@@ -6921,6 +7225,30 @@ struct SaveGameBuilder {
   void add_script_vars(flatbuffers::Offset<TEN::Save::UnionVec> script_vars) {
     fbb_.AddOffset(SaveGame::VT_SCRIPT_VARS, script_vars);
   }
+  void add_callbacks_pre_start(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_start) {
+    fbb_.AddOffset(SaveGame::VT_CALLBACKS_PRE_START, callbacks_pre_start);
+  }
+  void add_callbacks_post_start(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_start) {
+    fbb_.AddOffset(SaveGame::VT_CALLBACKS_POST_START, callbacks_post_start);
+  }
+  void add_callbacks_pre_end(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_end) {
+    fbb_.AddOffset(SaveGame::VT_CALLBACKS_PRE_END, callbacks_pre_end);
+  }
+  void add_callbacks_post_end(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_end) {
+    fbb_.AddOffset(SaveGame::VT_CALLBACKS_POST_END, callbacks_post_end);
+  }
+  void add_callbacks_pre_save(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_save) {
+    fbb_.AddOffset(SaveGame::VT_CALLBACKS_PRE_SAVE, callbacks_pre_save);
+  }
+  void add_callbacks_post_save(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_save) {
+    fbb_.AddOffset(SaveGame::VT_CALLBACKS_POST_SAVE, callbacks_post_save);
+  }
+  void add_callbacks_pre_load(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_load) {
+    fbb_.AddOffset(SaveGame::VT_CALLBACKS_PRE_LOAD, callbacks_pre_load);
+  }
+  void add_callbacks_post_load(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_load) {
+    fbb_.AddOffset(SaveGame::VT_CALLBACKS_POST_LOAD, callbacks_post_load);
+  }
   void add_callbacks_pre_control(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_control) {
     fbb_.AddOffset(SaveGame::VT_CALLBACKS_PRE_CONTROL, callbacks_pre_control);
   }
@@ -6979,6 +7307,14 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::Volume>>> volumes = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::EventSetCallCounters>>> call_counters = 0,
     flatbuffers::Offset<TEN::Save::UnionVec> script_vars = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_start = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_start = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_end = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_end = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_save = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_save = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_load = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_load = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_control = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_control = 0) {
   SaveGameBuilder builder_(_fbb);
@@ -6986,6 +7322,14 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_ambient_position(ambient_position);
   builder_.add_callbacks_post_control(callbacks_post_control);
   builder_.add_callbacks_pre_control(callbacks_pre_control);
+  builder_.add_callbacks_post_load(callbacks_post_load);
+  builder_.add_callbacks_pre_load(callbacks_pre_load);
+  builder_.add_callbacks_post_save(callbacks_post_save);
+  builder_.add_callbacks_pre_save(callbacks_pre_save);
+  builder_.add_callbacks_post_end(callbacks_post_end);
+  builder_.add_callbacks_pre_end(callbacks_pre_end);
+  builder_.add_callbacks_post_start(callbacks_post_start);
+  builder_.add_callbacks_pre_start(callbacks_pre_start);
   builder_.add_script_vars(script_vars);
   builder_.add_call_counters(call_counters);
   builder_.add_volumes(volumes);
@@ -7072,6 +7416,14 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<TEN::Save::Volume>> *volumes = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Save::EventSetCallCounters>> *call_counters = nullptr,
     flatbuffers::Offset<TEN::Save::UnionVec> script_vars = 0,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_start = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_start = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_end = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_end = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_save = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_save = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_load = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_load = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_control = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_control = nullptr) {
   auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Room>>(*rooms) : 0;
@@ -7095,6 +7447,14 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
   auto cd_flags__ = cd_flags ? _fbb.CreateVector<int32_t>(*cd_flags) : 0;
   auto volumes__ = volumes ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Volume>>(*volumes) : 0;
   auto call_counters__ = call_counters ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::EventSetCallCounters>>(*call_counters) : 0;
+  auto callbacks_pre_start__ = callbacks_pre_start ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_pre_start) : 0;
+  auto callbacks_post_start__ = callbacks_post_start ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_post_start) : 0;
+  auto callbacks_pre_end__ = callbacks_pre_end ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_pre_end) : 0;
+  auto callbacks_post_end__ = callbacks_post_end ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_post_end) : 0;
+  auto callbacks_pre_save__ = callbacks_pre_save ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_pre_save) : 0;
+  auto callbacks_post_save__ = callbacks_post_save ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_post_save) : 0;
+  auto callbacks_pre_load__ = callbacks_pre_load ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_pre_load) : 0;
+  auto callbacks_post_load__ = callbacks_post_load ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_post_load) : 0;
   auto callbacks_pre_control__ = callbacks_pre_control ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_pre_control) : 0;
   auto callbacks_post_control__ = callbacks_post_control ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_post_control) : 0;
   return TEN::Save::CreateSaveGame(
@@ -7138,6 +7498,14 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       volumes__,
       call_counters__,
       script_vars,
+      callbacks_pre_start__,
+      callbacks_post_start__,
+      callbacks_pre_end__,
+      callbacks_post_end__,
+      callbacks_pre_save__,
+      callbacks_post_save__,
+      callbacks_pre_load__,
+      callbacks_post_load__,
       callbacks_pre_control__,
       callbacks_post_control__);
 }
@@ -8057,6 +8425,70 @@ inline flatbuffers::Offset<LaraControlData> CreateLaraControlData(flatbuffers::F
       _subsuit);
 }
 
+inline PlayerEffectDataT *PlayerEffectData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PlayerEffectDataT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PlayerEffectData::UnPackTo(PlayerEffectDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = bubble_nodes(); if (_e) { _o->bubble_nodes.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bubble_nodes[_i] = _e->Get(_i); } } }
+  { auto _e = drip_nodes(); if (_e) { _o->drip_nodes.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->drip_nodes[_i] = _e->Get(_i); } } }
+}
+
+inline flatbuffers::Offset<PlayerEffectData> PlayerEffectData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PlayerEffectDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePlayerEffectData(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PlayerEffectData> CreatePlayerEffectData(flatbuffers::FlatBufferBuilder &_fbb, const PlayerEffectDataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PlayerEffectDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _bubble_nodes = _fbb.CreateVector(_o->bubble_nodes);
+  auto _drip_nodes = _fbb.CreateVector(_o->drip_nodes);
+  return TEN::Save::CreatePlayerEffectData(
+      _fbb,
+      _bubble_nodes,
+      _drip_nodes);
+}
+
+inline PlayerStatusDataT *PlayerStatusData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PlayerStatusDataT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PlayerStatusData::UnPackTo(PlayerStatusDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = air(); _o->air = _e; }
+  { auto _e = exposure(); _o->exposure = _e; }
+  { auto _e = poison(); _o->poison = _e; }
+  { auto _e = stamina(); _o->stamina = _e; }
+}
+
+inline flatbuffers::Offset<PlayerStatusData> PlayerStatusData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PlayerStatusDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePlayerStatusData(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PlayerStatusData> CreatePlayerStatusData(flatbuffers::FlatBufferBuilder &_fbb, const PlayerStatusDataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PlayerStatusDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _air = _o->air;
+  auto _exposure = _o->exposure;
+  auto _poison = _o->poison;
+  auto _stamina = _o->stamina;
+  return TEN::Save::CreatePlayerStatusData(
+      _fbb,
+      _air,
+      _exposure,
+      _poison,
+      _stamina);
+}
+
 inline LaraT *Lara::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<LaraT>();
   UnPackTo(_o.get(), _resolver);
@@ -8066,6 +8498,8 @@ inline LaraT *Lara::UnPack(const flatbuffers::resolver_function_t *_resolver) co
 inline void Lara::UnPackTo(LaraT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = effect(); if (_e) _o->effect = std::unique_ptr<TEN::Save::PlayerEffectDataT>(_e->UnPack(_resolver)); }
+  { auto _e = status(); if (_e) _o->status = std::unique_ptr<TEN::Save::PlayerStatusDataT>(_e->UnPack(_resolver)); }
   { auto _e = item_number(); _o->item_number = _e; }
   { auto _e = control(); if (_e) _o->control = std::unique_ptr<TEN::Save::LaraControlDataT>(_e->UnPack(_resolver)); }
   { auto _e = inventory(); if (_e) _o->inventory = std::unique_ptr<TEN::Save::LaraInventoryDataT>(_e->UnPack(_resolver)); }
@@ -8080,9 +8514,6 @@ inline void Lara::UnPackTo(LaraT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = right_arm(); if (_e) _o->right_arm = std::unique_ptr<TEN::Save::ArmInfoT>(_e->UnPack(_resolver)); }
   { auto _e = target_arm_angles(); if (_e) { _o->target_arm_angles.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->target_arm_angles[_i] = _e->Get(_i); } } }
   { auto _e = target_entity_number(); _o->target_entity_number = _e; }
-  { auto _e = air(); _o->air = _e; }
-  { auto _e = sprint_energy(); _o->sprint_energy = _e; }
-  { auto _e = poison_potency(); _o->poison_potency = _e; }
   { auto _e = vehicle(); _o->vehicle = _e; }
   { auto _e = extra_anim(); _o->extra_anim = _e; }
   { auto _e = hit_frame(); _o->hit_frame = _e; }
@@ -8097,7 +8528,6 @@ inline void Lara::UnPackTo(LaraT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = burn(); _o->burn = _e; }
   { auto _e = burn_blue(); _o->burn_blue = _e; }
   { auto _e = burn_smoke(); _o->burn_smoke = _e; }
-  { auto _e = wet(); if (_e) { _o->wet.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->wet[_i] = _e->Get(_i) != 0; } } }
   { auto _e = location(); _o->location = _e; }
   { auto _e = highest_location(); _o->highest_location = _e; }
   { auto _e = location_pad(); _o->location_pad = _e; }
@@ -8111,6 +8541,8 @@ inline flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const LaraT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _effect = _o->effect ? CreatePlayerEffectData(_fbb, _o->effect.get(), _rehasher) : 0;
+  auto _status = _o->status ? CreatePlayerStatusData(_fbb, _o->status.get(), _rehasher) : 0;
   auto _item_number = _o->item_number;
   auto _control = _o->control ? CreateLaraControlData(_fbb, _o->control.get(), _rehasher) : 0;
   auto _inventory = _o->inventory ? CreateLaraInventoryData(_fbb, _o->inventory.get(), _rehasher) : 0;
@@ -8125,9 +8557,6 @@ inline flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb
   auto _right_arm = _o->right_arm ? CreateArmInfo(_fbb, _o->right_arm.get(), _rehasher) : 0;
   auto _target_arm_angles = _fbb.CreateVector(_o->target_arm_angles);
   auto _target_entity_number = _o->target_entity_number;
-  auto _air = _o->air;
-  auto _sprint_energy = _o->sprint_energy;
-  auto _poison_potency = _o->poison_potency;
   auto _vehicle = _o->vehicle;
   auto _extra_anim = _o->extra_anim;
   auto _hit_frame = _o->hit_frame;
@@ -8142,12 +8571,13 @@ inline flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb
   auto _burn = _o->burn;
   auto _burn_blue = _o->burn_blue;
   auto _burn_smoke = _o->burn_smoke;
-  auto _wet = _fbb.CreateVector(_o->wet);
   auto _location = _o->location;
   auto _highest_location = _o->highest_location;
   auto _location_pad = _o->location_pad;
   return TEN::Save::CreateLara(
       _fbb,
+      _effect,
+      _status,
       _item_number,
       _control,
       _inventory,
@@ -8162,9 +8592,6 @@ inline flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb
       _right_arm,
       _target_arm_angles,
       _target_entity_number,
-      _air,
-      _sprint_energy,
-      _poison_potency,
       _vehicle,
       _extra_anim,
       _hit_frame,
@@ -8179,7 +8606,6 @@ inline flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb
       _burn,
       _burn_blue,
       _burn_smoke,
-      _wet,
       _location,
       _highest_location,
       _location_pad);
@@ -8773,6 +9199,32 @@ inline flatbuffers::Offset<boolTable> CreateboolTable(flatbuffers::FlatBufferBui
       _scalar);
 }
 
+inline vec2TableT *vec2Table::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<vec2TableT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void vec2Table::UnPackTo(vec2TableT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = vec(); if (_e) _o->vec = std::unique_ptr<TEN::Save::Vector2>(new TEN::Save::Vector2(*_e)); }
+}
+
+inline flatbuffers::Offset<vec2Table> vec2Table::Pack(flatbuffers::FlatBufferBuilder &_fbb, const vec2TableT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return Createvec2Table(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<vec2Table> Createvec2Table(flatbuffers::FlatBufferBuilder &_fbb, const vec2TableT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const vec2TableT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _vec = _o->vec ? _o->vec.get() : 0;
+  return TEN::Save::Createvec2Table(
+      _fbb,
+      _vec);
+}
+
 inline vec3TableT *vec3Table::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<vec3TableT>();
   UnPackTo(_o.get(), _resolver);
@@ -9071,6 +9523,14 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = volumes(); if (_e) { _o->volumes.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->volumes[_i] = std::unique_ptr<TEN::Save::VolumeT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = call_counters(); if (_e) { _o->call_counters.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->call_counters[_i] = std::unique_ptr<TEN::Save::EventSetCallCountersT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = script_vars(); if (_e) _o->script_vars = std::unique_ptr<TEN::Save::UnionVecT>(_e->UnPack(_resolver)); }
+  { auto _e = callbacks_pre_start(); if (_e) { _o->callbacks_pre_start.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_pre_start[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = callbacks_post_start(); if (_e) { _o->callbacks_post_start.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_start[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = callbacks_pre_end(); if (_e) { _o->callbacks_pre_end.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_pre_end[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = callbacks_post_end(); if (_e) { _o->callbacks_post_end.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_end[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = callbacks_pre_save(); if (_e) { _o->callbacks_pre_save.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_pre_save[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = callbacks_post_save(); if (_e) { _o->callbacks_post_save.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_save[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = callbacks_pre_load(); if (_e) { _o->callbacks_pre_load.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_pre_load[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = callbacks_post_load(); if (_e) { _o->callbacks_post_load.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_load[_i] = _e->Get(_i)->str(); } } }
   { auto _e = callbacks_pre_control(); if (_e) { _o->callbacks_pre_control.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_pre_control[_i] = _e->Get(_i)->str(); } } }
   { auto _e = callbacks_post_control(); if (_e) { _o->callbacks_post_control.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_control[_i] = _e->Get(_i)->str(); } } }
 }
@@ -9122,6 +9582,14 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _volumes = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Volume>> (_o->volumes.size(), [](size_t i, _VectorArgs *__va) { return CreateVolume(*__va->__fbb, __va->__o->volumes[i].get(), __va->__rehasher); }, &_va );
   auto _call_counters = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::EventSetCallCounters>> (_o->call_counters.size(), [](size_t i, _VectorArgs *__va) { return CreateEventSetCallCounters(*__va->__fbb, __va->__o->call_counters[i].get(), __va->__rehasher); }, &_va );
   auto _script_vars = _o->script_vars ? CreateUnionVec(_fbb, _o->script_vars.get(), _rehasher) : 0;
+  auto _callbacks_pre_start = _fbb.CreateVectorOfStrings(_o->callbacks_pre_start);
+  auto _callbacks_post_start = _fbb.CreateVectorOfStrings(_o->callbacks_post_start);
+  auto _callbacks_pre_end = _fbb.CreateVectorOfStrings(_o->callbacks_pre_end);
+  auto _callbacks_post_end = _fbb.CreateVectorOfStrings(_o->callbacks_post_end);
+  auto _callbacks_pre_save = _fbb.CreateVectorOfStrings(_o->callbacks_pre_save);
+  auto _callbacks_post_save = _fbb.CreateVectorOfStrings(_o->callbacks_post_save);
+  auto _callbacks_pre_load = _fbb.CreateVectorOfStrings(_o->callbacks_pre_load);
+  auto _callbacks_post_load = _fbb.CreateVectorOfStrings(_o->callbacks_post_load);
   auto _callbacks_pre_control = _fbb.CreateVectorOfStrings(_o->callbacks_pre_control);
   auto _callbacks_post_control = _fbb.CreateVectorOfStrings(_o->callbacks_post_control);
   return TEN::Save::CreateSaveGame(
@@ -9165,6 +9633,14 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _volumes,
       _call_counters,
       _script_vars,
+      _callbacks_pre_start,
+      _callbacks_post_start,
+      _callbacks_pre_end,
+      _callbacks_post_end,
+      _callbacks_pre_save,
+      _callbacks_post_save,
+      _callbacks_pre_load,
+      _callbacks_post_load,
       _callbacks_pre_control,
       _callbacks_post_control);
 }
@@ -9188,6 +9664,10 @@ inline bool VerifyVarUnion(flatbuffers::Verifier &verifier, const void *obj, Var
     }
     case VarUnion::boolean: {
       auto ptr = reinterpret_cast<const TEN::Save::boolTable *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case VarUnion::vec2: {
+      auto ptr = reinterpret_cast<const TEN::Save::vec2Table *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case VarUnion::vec3: {
@@ -9240,6 +9720,10 @@ inline void *VarUnionUnion::UnPack(const void *obj, VarUnion type, const flatbuf
       auto ptr = reinterpret_cast<const TEN::Save::boolTable *>(obj);
       return ptr->UnPack(resolver);
     }
+    case VarUnion::vec2: {
+      auto ptr = reinterpret_cast<const TEN::Save::vec2Table *>(obj);
+      return ptr->UnPack(resolver);
+    }
     case VarUnion::vec3: {
       auto ptr = reinterpret_cast<const TEN::Save::vec3Table *>(obj);
       return ptr->UnPack(resolver);
@@ -9278,6 +9762,10 @@ inline flatbuffers::Offset<void> VarUnionUnion::Pack(flatbuffers::FlatBufferBuil
       auto ptr = reinterpret_cast<const TEN::Save::boolTableT *>(value);
       return CreateboolTable(_fbb, ptr, _rehasher).Union();
     }
+    case VarUnion::vec2: {
+      auto ptr = reinterpret_cast<const TEN::Save::vec2TableT *>(value);
+      return Createvec2Table(_fbb, ptr, _rehasher).Union();
+    }
     case VarUnion::vec3: {
       auto ptr = reinterpret_cast<const TEN::Save::vec3TableT *>(value);
       return Createvec3Table(_fbb, ptr, _rehasher).Union();
@@ -9314,6 +9802,10 @@ inline VarUnionUnion::VarUnionUnion(const VarUnionUnion &u) : type(u.type), valu
     }
     case VarUnion::boolean: {
       value = new TEN::Save::boolTableT(*reinterpret_cast<TEN::Save::boolTableT *>(u.value));
+      break;
+    }
+    case VarUnion::vec2: {
+      FLATBUFFERS_ASSERT(false);  // TEN::Save::vec2TableT not copyable.
       break;
     }
     case VarUnion::vec3: {
@@ -9356,6 +9848,11 @@ inline void VarUnionUnion::Reset() {
     }
     case VarUnion::boolean: {
       auto ptr = reinterpret_cast<TEN::Save::boolTableT *>(value);
+      delete ptr;
+      break;
+    }
+    case VarUnion::vec2: {
+      auto ptr = reinterpret_cast<TEN::Save::vec2TableT *>(value);
       delete ptr;
       break;
     }

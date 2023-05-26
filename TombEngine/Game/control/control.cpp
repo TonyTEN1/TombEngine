@@ -11,27 +11,32 @@
 #include "Game/control/lot.h"
 #include "Game/control/volume.h"
 #include "Game/effects/debris.h"
-#include "Game/effects/drip.h"
+#include "Game/effects/Blood.h"
+#include "Game/effects/Bubble.h"
+#include "Game/effects/Drip.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/effects/explosion.h"
-#include "Game/effects/footprint.h"
-#include "Game/effects/hair.h"
+#include "Game/effects/Footprint.h"
+#include "Game/effects/Hair.h"
+#include "Game/effects/Ripple.h"
 #include "Game/effects/simple_particle.h"
 #include "Game/effects/smoke.h"
 #include "Game/effects/spark.h"
+#include "Game/effects/Streamer.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
 #include "Game/Gui.h"
+#include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_cheat.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
-#include "Game/health.h"
 #include "Game/items.h"
 #include "Game/pickup/pickup.h"
 #include "Game/room.h"
 #include "Game/savegame.h"
+#include "Game/Setup.h"
 #include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Objects/Effects/tr4_locusts.h"
@@ -42,6 +47,7 @@
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_spider_emitter.h"
+#include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
@@ -50,31 +56,37 @@
 #include "Specific/clock.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 #include "Specific/winmain.h"
 
 using namespace std::chrono;
 using namespace TEN::Effects;
+using namespace TEN::Effects::Blood;
+using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Explosion;
-using namespace TEN::Effects::Footprints;
+using namespace TEN::Effects::Footprint;
+using namespace TEN::Effects::Hair;
+using namespace TEN::Effects::Ripple;
 using namespace TEN::Effects::Smoke;
 using namespace TEN::Effects::Spark;
+using namespace TEN::Effects::Streamer;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
-using namespace TEN::Floordata;
+using namespace TEN::Collision::Floordata;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Renderer;
+using namespace TEN::Traps::TR5;
 
 int GameTimer       = 0;
 int GlobalCounter   = 0;
 int Wibble          = 0;
 
-bool InitialiseGame;
+bool InitializeGame;
 bool DoTheGame;
 bool JustLoaded;
 bool ThreadEnded;
@@ -114,7 +126,6 @@ GameStatus ControlPhase(int numFrames)
 {
 	auto time1 = std::chrono::high_resolution_clock::now();
 
-	auto* level = g_GameFlow->GetLevel(CurrentLevel);
 	bool isTitle = (CurrentLevel == 0);
 
 	RegeneratePickups();
@@ -186,7 +197,8 @@ GameStatus ControlPhase(int numFrames)
 		// Update weather.
 		Weather.Update();
 
-		// Update special FX.
+		// Update effects.
+		StreamerEffect.Update();
 		UpdateSparks();
 		UpdateFireSparks();
 		UpdateSmoke();
@@ -196,23 +208,25 @@ GameStatus ControlPhase(int numFrames)
 		UpdateGunShells();
 		UpdateFootprints();
 		UpdateSplashes();
-		UpdateElectricitys();
+		UpdateElectricityArcs();
 		UpdateHelicalLasers();
 		UpdateDrips();
 		UpdateRats();
+		UpdateRipples();
 		UpdateBats();
 		UpdateSpiders();
 		UpdateSparkParticles();
 		UpdateSmokeParticles();
 		UpdateSimpleParticles();
-		UpdateDripParticles();
+		UpdateDrips();
 		UpdateExplosionParticles();
 		UpdateShockwaves();
 		UpdateBeetleSwarm();
 		UpdateLocusts();
+		UpdateUnderwaterBloodParticles();
 
-		// Update screen UI and overlays.
-		UpdateBars(LaraItem);
+		// Update HUD.
+		g_Hud.Update(*LaraItem);
 		UpdateFadeScreenAndCinematicBars();
 
 		// Rumble screen (like in submarine level of TRC).
@@ -258,7 +272,6 @@ unsigned CALLBACK GameMain(void *)
 	else
 		g_Renderer.RenderTitleImage();
 
-
 	// Execute the Lua gameflow and play the game.
 	g_GameFlow->DoFlow();
 
@@ -282,19 +295,18 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 		return isTitle ? GameStatus::ExitGame : GameStatus::ExitToTitle;
 
 	// Initialize items, effects, lots, and cameras.
-	InitialiseFXArray(true);
-	InitialisePickupDisplay();
-	InitialiseCamera();
-	InitialiseSpotCamSequences(isTitle);
-	InitialiseHair();
-	InitialiseItemBoxData();
+	HairEffect.Initialize();
+	InitializeFXArray(true);
+	InitializeCamera();
+	InitializeSpotCamSequences(isTitle);
+	InitializeItemBoxData();
 
 	// Initialize scripting.
-	InitialiseScripting(levelIndex, loadGame);
-	InitialiseNodeScripts();
+	InitializeScripting(levelIndex, loadGame);
+	InitializeNodeScripts();
 
 	// Initialize game variables and optionally load game.
-	InitialiseOrLoadGame(loadGame);
+	InitializeOrLoadGame(loadGame);
 
 	// Prepare title menu, if necessary.
 	if (isTitle)
@@ -400,23 +412,35 @@ void CleanUp()
 	ClearSpotCamSequences();
 	ClearCinematicBars();
 
-	// Clear all kinds of particles.
+	// Clear effects.
+	StreamerEffect.Clear();
+	ClearUnderwaterBloodParticles();
+	ClearBubbles();
+	ClearFootprints();
+	ClearDrips();
+	ClearRipples();
+	ClearLaserBarrierEffects();
 	DisableSmokeParticles();
-	DisableDripParticles();
-	DisableBubbles();
+	DisableSparkParticles();
 	DisableDebris();
 
 	// Clear swarm enemies.
 	ClearSwarmEnemies(nullptr);
+
+	// Clear HUD.
+	g_Hud.Clear();
 
 	// Clear soundtrack masks.
 	ClearSoundTrackMasks();
 
 	// Clear all remaining renderer data.
 	g_Renderer.ClearScene();
+
+	// Reset Itemcamera
+	ClearObjCamera();
 }
 
-void InitialiseScripting(int levelIndex, bool loadGame)
+void InitializeScripting(int levelIndex, bool loadGame)
 {
 	TENLog("Loading level script...", LogLevel::Info);
 
@@ -428,13 +452,14 @@ void InitialiseScripting(int levelIndex, bool loadGame)
 	// Run level script if it exists.
 	if (!level->ScriptFileName.empty())
 	{
-		g_GameScript->ExecuteScriptFile(level->ScriptFileName);
+		g_GameScript->ExecuteScriptFile(g_GameFlow->GetGameDir() + level->ScriptFileName);
 		g_GameScript->InitCallbacks();
 		g_GameStringsHandler->SetCallbackDrawString([](std::string const key, D3DCOLOR col, int x, int y, int flags)
 		{
-			g_Renderer.AddString(float(x) / float(g_Configuration.Width) * REFERENCE_RES_WIDTH,
-								 float(y) / float(g_Configuration.Height) * REFERENCE_RES_HEIGHT,
-								 key.c_str(), col, flags);
+			g_Renderer.AddString(
+				float(x) / float(g_Configuration.Width) * SCREEN_SPACE_RES.x,
+				float(y) / float(g_Configuration.Height) * SCREEN_SPACE_RES.y,
+				key.c_str(), col, flags);
 		});
 	}
 
@@ -442,9 +467,9 @@ void InitialiseScripting(int levelIndex, bool loadGame)
 	PlaySoundTrack(level->GetAmbientTrack(), SoundTrackType::BGM);
 }
 
-void DeInitialiseScripting(int levelIndex)
+void DeInitializeScripting(int levelIndex, GameStatus reason)
 {
-	g_GameScript->OnEnd();
+	g_GameScript->OnEnd(reason);
 	g_GameScript->FreeLevelScripts();
 	g_GameScriptEntities->FreeEntities();
 
@@ -452,7 +477,7 @@ void DeInitialiseScripting(int levelIndex)
 		g_GameScript->ResetScripts(true);
 }
 
-void InitialiseOrLoadGame(bool loadGame)
+void InitializeOrLoadGame(bool loadGame)
 {
 	RequiredStartPos = false;
 
@@ -472,7 +497,7 @@ void InitialiseOrLoadGame(bool loadGame)
 		Camera.target.y = LaraItem->Pose.Position.y;
 		Camera.target.z = LaraItem->Pose.Position.z;
 
-		InitialiseGame = false;
+		InitializeGame = false;
 
 		g_GameFlow->SelectedSaveGame = 0;
 		g_GameScript->OnLoad();
@@ -482,12 +507,12 @@ void InitialiseOrLoadGame(bool loadGame)
 		// If not loading a savegame, clear all info.
 		Statistics.Level = {};
 
-		if (InitialiseGame)
+		if (InitializeGame)
 		{
 			// Clear all game info as well.
 			Statistics.Game = {};
 			GameTimer = 0;
-			InitialiseGame = false;
+			InitializeGame = false;
 
 			TENLog("Starting new game.", LogLevel::Info);
 		}
@@ -540,6 +565,7 @@ GameStatus DoGameLoop(int levelIndex)
 		else
 		{
 			if (result == GameStatus::ExitToTitle ||
+				result == GameStatus::LaraDead ||
 				result == GameStatus::LoadGame ||
 				result == GameStatus::LevelComplete)
 			{
@@ -551,13 +577,13 @@ GameStatus DoGameLoop(int levelIndex)
 		Sound_UpdateScene();
 	}
 
-	EndGameLoop(levelIndex);
+	EndGameLoop(levelIndex, result);
 	return result;
 }
 
-void EndGameLoop(int levelIndex)
+void EndGameLoop(int levelIndex, GameStatus reason)
 {
-	DeInitialiseScripting(levelIndex);
+	DeInitializeScripting(levelIndex, reason);
 
 	StopAllSounds();
 	StopSoundTracks();
@@ -655,7 +681,7 @@ GameStatus HandleGlobalInputEvents(bool isTitle)
 	if (Lara.Control.Count.Death > DEATH_NO_INPUT_TIMEOUT ||
 		Lara.Control.Count.Death > DEATH_INPUT_TIMEOUT && !NoAction())
 	{
-		return GameStatus::ExitToTitle; // Maybe do game over menu like some PSX versions have??
+		return GameStatus::LaraDead; // Maybe do game over menu like some PSX versions have??
 	}
 
 	// Has level been completed?

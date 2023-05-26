@@ -12,38 +12,37 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
-#include "Math/Random.h"
-#include "Specific/setup.h"
+#include "Game/Setup.h"
+#include "Math/Math.h"
 
 using namespace TEN::Effects::Environment;
-using namespace TEN::Math::Random;
-using std::vector;
+using namespace TEN::Math;
 
 namespace TEN::Entities::TR4
 {
 	constexpr auto BABOON_ATTACK_DAMAGE = 70;
 
-	constexpr auto BABOON_ATTACK_RANGE		  = SQUARE(SECTOR(0.34f));
-	constexpr auto BABOON_ATTACK_READY_RANGE  = SQUARE(SECTOR(0.67f));
-	constexpr auto BABOON_JUMP_ATTACK_2_RANGE = SQUARE(SECTOR(0.67f));
-	constexpr auto BABOON_IDLE_RANGE		  = SQUARE(SECTOR(1));
-	constexpr auto BABOON_ROLL_FORWARD_RANGE  = SQUARE(SECTOR(1));
-	constexpr auto BABOON_FOLLOW_RANGE		  = SQUARE(SECTOR(2));
+	constexpr auto BABOON_ATTACK_RANGE		  = SQUARE(BLOCK(0.34f));
+	constexpr auto BABOON_ATTACK_READY_RANGE  = SQUARE(BLOCK(0.67f));
+	constexpr auto BABOON_JUMP_ATTACK_2_RANGE = SQUARE(BLOCK(0.67f));
+	constexpr auto BABOON_IDLE_RANGE		  = SQUARE(BLOCK(1));
+	constexpr auto BABOON_ROLL_FORWARD_RANGE  = SQUARE(BLOCK(1));
+	constexpr auto BABOON_FOLLOW_RANGE		  = SQUARE(BLOCK(2));
+
+	constexpr auto BABOON_ATTACK_ANGLE			  = ANGLE(7.0f);
+	constexpr auto BABOON_WALK_FORWARD_TURN_ANGLE = ANGLE(7.0f);
+	constexpr auto BABOON_RUN_FORWARD_TURN_ANGLE  = ANGLE(11.0f);
+
+	constexpr auto BABOON_STATE_WALK_ANIM = 14; // TODO: What is this?
 
 	constexpr auto NO_BABOON			   = -1;
 	constexpr auto NO_BABOON_COUNT		   = -2;
 	constexpr auto NO_CROWBAR_SWITCH_FOUND = -1;
 
-	#define BABOON_ATTACK_ANGLE			   ANGLE(7.0f)
-	#define BABOON_WALK_FORWARD_TURN_ANGLE ANGLE(7.0f)
-	#define BABOON_RUN_FORWARD_TURN_ANGLE  ANGLE(11.0f)
-
-	#define BABOON_STATE_WALK_ANIM 14 // TODO: What is this?
-
-	const auto BaboonBite = BiteInfo(Vector3(10.0f, 10.0f, 11.0f), 4);
-	const vector<unsigned int> BaboonAttackJoints	  = { 11, 12 };
-	const vector<unsigned int> BaboonAttackRightJoints = { 1, 2, 3, 5, 8, 9 };
-	const vector<unsigned int> BaboonJumpAttackJoints  = { 3, 4, 8 };
+	const auto BaboonBite = CreatureBiteInfo(Vector3i(10, 10, 11), 4);
+	const auto BaboonAttackJoints	   = std::vector<unsigned int>{ 11, 12 };
+	const auto BaboonAttackRightJoints = std::vector<unsigned int>{ 1, 2, 3, 5, 8, 9 };
+	const auto BaboonJumpAttackJoints  = std::vector<unsigned int>{ 3, 4, 8 };
 
 	BaboonRespawner BaboonRespawn;
 
@@ -233,13 +232,13 @@ namespace TEN::Entities::TR4
 		UpdateRespawnedBaboon(itemNumber);
 	}
 
-	void InitialiseBaboon(short itemNumber)
+	void InitializeBaboon(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 		if (!Objects[ID_BABOON_NORMAL].loaded)
 			TENLog("Failed to assign ID_BABOON_INV|ID_BABOON_SILENT animation index; ID_BABOON_NORMAL not found.", LogLevel::Warning);
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 		SetAnimation(item, BABOON_ANIM_SIT_IDLE);
 
 		if (item->ObjectNumber == ID_BABOON_SILENT && item->TriggerFlags != 0)
@@ -264,7 +263,7 @@ namespace TEN::Entities::TR4
 		{
 			if (item->Animation.ActiveState == BABOON_STATE_WALK)
 			{
-				if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameEnd)
+				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
 					BaboonRespawnFunction(itemNumber);
 			}
 			else if (item->Animation.ActiveState != BABOON_ACTIVATE_SWITCH)
@@ -327,9 +326,9 @@ namespace TEN::Entities::TR4
 				if (item->AIBits & GUARD)
 				{
 					AIGuard(creature);
-					if (TestProbability(0.06f))
+					if (Random::TestProbability(0.06f))
 					{
-						if (TestProbability(0.5f))
+						if (Random::TestProbability(1 / 2.0f))
 							item->Animation.TargetState = BABOON_STATE_HIT_GROUND;
 						else
 							item->Animation.TargetState = BABOON_STATE_SIT_IDLE;
@@ -362,18 +361,18 @@ namespace TEN::Entities::TR4
 						else
 							item->Animation.TargetState = BABOON_STATE_RUN_FORWARD;
 					}
-					else if (item->Animation.RequiredState)
+					else if (item->Animation.RequiredState != NO_STATE)
 						item->Animation.TargetState = item->Animation.RequiredState;
-					else if (TestProbability(0.5f))
+					else if (Random::TestProbability(1 / 2.0f))
 						item->Animation.TargetState = BABOON_STATE_SIT_IDLE;
 				}
-				else if (item->Animation.RequiredState)
+				else if (item->Animation.RequiredState != NO_STATE)
 					item->Animation.TargetState = item->Animation.RequiredState;
-				else if (TestProbability(0.25f))
+				else if (Random::TestProbability(0.25f))
 					item->Animation.TargetState = BABOON_STATE_WALK_FORWARD;
-				else if (TestProbability(0.5f))
+				else if (Random::TestProbability(1 / 2.0f))
 					item->Animation.TargetState = BABOON_STATE_RUN_FORWARD_ROLL;
-				else if (TestProbability(0.5f))
+				else if (Random::TestProbability(1 / 2.0f))
 					item->Animation.TargetState = BABOON_STATE_HIT_GROUND;
 
 				break;
@@ -386,9 +385,9 @@ namespace TEN::Entities::TR4
 				{
 					AIGuard(creature);
 
-					if (TestProbability(0.94f))
+					if (Random::TestProbability(0.94f))
 						item->Animation.TargetState = BABOON_STATE_EAT;
-					else if (TestProbability(0.75f))
+					else if (Random::TestProbability(0.75f))
 						item->Animation.TargetState = BABOON_STATE_SIT_SCRATCH;
 				}
 				else if (item->AIBits & PATROL1)
@@ -400,23 +399,23 @@ namespace TEN::Entities::TR4
 						// NOTE: It's not true to the original functionality, but to avoid repetitive actions,
 						// the SIT_IDLE state was given a higher chance of occurring. The EAT state was also added here. -- TokyoSU
 
-						if (item->Animation.RequiredState)
+						if (item->Animation.RequiredState != NO_STATE)
 							item->Animation.TargetState = item->Animation.RequiredState;
-						else if (TestProbability(0.5f))
+						else if (Random::TestProbability(1 / 2.0f))
 							item->Animation.TargetState = BABOON_STATE_SIT_IDLE;
-						else if (TestProbability(0.75f))
+						else if (Random::TestProbability(0.75f))
 						{
-							if (TestProbability(0.5f))
+							if (Random::TestProbability(1 / 2.0f))
 								item->Animation.TargetState = BABOON_STATE_SIT_SCRATCH;
-							else if (TestProbability(0.87f))
+							else if (Random::TestProbability(0.87f))
 								item->Animation.TargetState = BABOON_STATE_EAT;
 						}
-						else if (TestProbability(0.5f) || item->AIBits & FOLLOW)
+						else if (Random::TestProbability(1 / 2.0f) || item->AIBits & FOLLOW)
 							item->Animation.TargetState = BABOON_STATE_WALK_FORWARD;
 					}
 					else if ((item->AIBits & FOLLOW) && AI.distance > BABOON_IDLE_RANGE)
 					{
-						if (item->Animation.RequiredState)
+						if (item->Animation.RequiredState != NO_STATE)
 							item->Animation.TargetState = item->Animation.RequiredState;
 						else
 							item->Animation.TargetState = BABOON_STATE_WALK_FORWARD;
@@ -438,7 +437,7 @@ namespace TEN::Entities::TR4
 				{
 					if (item->AIBits & FOLLOW)
 						item->Animation.TargetState = BABOON_STATE_WALK_FORWARD;
-					else if (TestProbability(1.0f / 128))
+					else if (Random::TestProbability(1 / 128.0f))
 						item->Animation.TargetState = BABOON_STATE_SIT_IDLE;
 				}
 				else if (creature->Mood == MoodType::Escape)
@@ -448,7 +447,7 @@ namespace TEN::Entities::TR4
 					if (AI.bite && AI.distance < BABOON_ATTACK_READY_RANGE)
 						item->Animation.TargetState = BABOON_STATE_IDLE;
 				}
-				else if (TestProbability(1.0f / 128))
+				else if (Random::TestProbability(1 / 128.0f))
 					item->Animation.TargetState = BABOON_STATE_SIT_IDLE;
 
 				break;
@@ -487,7 +486,7 @@ namespace TEN::Entities::TR4
 				creature->MaxTurn = 0;
 				item->HitPoints = NOT_TARGETABLE;
 
-				if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase + 212)
+				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 212)
 				{
 					auto pos = Vector3i::Zero;
 					if (item->Pose.Orientation.y == ANGLE(270.0f))

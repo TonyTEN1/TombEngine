@@ -7,14 +7,15 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/explosion.h"
-#include "Game/effects/bubble.h"
+#include "Game/effects/Bubble.h"
 #include "Game/Lara/lara.h"
 #include "Game/items.h"
+#include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 
+using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Explosion;
 using namespace TEN::Math;
 
@@ -114,13 +115,13 @@ void ControlMissile(short fxNumber)
 		EffectNewRoom(fxNumber, pointColl.RoomNumber);
 
 	if (fx.objectNumber == ID_KNIFETHROWER_KNIFE)
-		fx.pos.Orientation.z += ANGLE(3.0f); // Update knife rotation over time.
+		fx.pos.Orientation.z += ANGLE(30.0f); // Update knife rotation over time.
 
 	switch (fx.objectNumber)
 	{
 	case ID_SCUBA_HARPOON:
 		if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx.roomNumber))
-			CreateBubble(&fx.pos.Position, fx.roomNumber, 1, 0, 0, 0, 0, 0);
+			SpawnBubble(fx.pos.Position.ToVector3(), fx.roomNumber);
 
 		break;
 

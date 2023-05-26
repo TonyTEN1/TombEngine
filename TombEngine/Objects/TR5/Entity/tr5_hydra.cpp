@@ -10,16 +10,16 @@
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
 #include "Game/misc.h"
+#include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
-#include "Specific/setup.h"
 
-using namespace TEN::Math::Random;
+using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR5
 {
-	const auto HydraBite = BiteInfo(Vector3::Zero, 11);
+	const auto HydraBite = CreatureBiteInfo(Vector3i::Zero, 11);
 
 	enum HydraState
 	{
@@ -39,11 +39,11 @@ namespace TEN::Entities::Creatures::TR5
 
 	};
 
-	void InitialiseHydra(short itemNumber)
+	void InitializeHydra(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 		SetAnimation(item, 0);
 
 		if (item->TriggerFlags == 1)
@@ -106,7 +106,7 @@ namespace TEN::Entities::Creatures::TR5
 		spark->flags = SP_EXPDEF | SP_ROTATE | SP_DEF | SP_SCALE;
 		spark->rotAng = GetRandomControl() & 0xFFF;
 
-		if (TestProbability(0.5f))
+		if (Random::TestProbability(1 / 2.0f))
 			spark->rotAdd = -32 - (GetRandomControl() & 0x1F);
 		else
 			spark->rotAdd = (GetRandomControl() & 0x1F) + 32;
@@ -230,11 +230,11 @@ namespace TEN::Entities::Creatures::TR5
 				else if (item->TriggerFlags == 2)
 					tilt = ANGLE(2.8f);
 
-				if (AI.distance >= pow(CLICK(7), 2) && TestProbability(0.97f))
+				if (AI.distance >= pow(CLICK(7), 2) && Random::TestProbability(0.97f))
 				{
-					if (AI.distance >= pow(SECTOR(2), 2) && TestProbability(0.97f))
+					if (AI.distance >= pow(SECTOR(2), 2) && Random::TestProbability(0.97f))
 					{
-						if (TestProbability(0.06f))
+						if (Random::TestProbability(0.06f))
 							item->Animation.TargetState = HYDRA_STATE_AIM;
 					}
 					else
@@ -309,7 +309,7 @@ namespace TEN::Entities::Creatures::TR5
 
 				if (!(GlobalCounter & 3))
 				{
-					frame = ((g_Level.Anims[item->Animation.AnimNumber].frameBase - item->Animation.FrameNumber) / 8) + 1;
+					frame = ((GetAnimData(item).frameBase - item->Animation.FrameNumber) / 8) + 1;
 					if (frame > 16)
 						frame = 16;
 
@@ -319,7 +319,7 @@ namespace TEN::Entities::Creatures::TR5
 				break;
 
 			case 3:
-				if (item->Animation.FrameNumber == g_Level.Anims[item->Animation.AnimNumber].frameBase)
+				if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
 				{
 					auto pos1 = GetJointPosition(item, 10, Vector3i(0, 1024, 40));
 					auto pos2 = GetJointPosition(item, 10, Vector3i(0, 144, 40));
@@ -373,10 +373,10 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 15;
 				item->Animation.ActiveState = HYDRA_STATE_DEATH;
-				item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+				item->Animation.FrameNumber = GetAnimData(item).frameBase;
 			}
 
-			if (!((item->Animation.FrameNumber - g_Level.Anims[item->Animation.AnimNumber].frameBase) & 7))
+			if (!((item->Animation.FrameNumber - GetAnimData(item).frameBase) & 7))
 			{
 				if (item->ItemFlags[3] < 12)
 				{

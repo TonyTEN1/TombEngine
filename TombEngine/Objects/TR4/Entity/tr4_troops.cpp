@@ -12,15 +12,15 @@
 #include "Game/itemdata/creature_info.h"
 #include "Game/animation.h"
 #include "Game/misc.h"
+#include "Game/Setup.h"
+#include "Math/Math.h"
 #include "Specific/level.h"
-#include "Math/Random.h"
-#include "Specific/setup.h"
 
-using namespace TEN::Math::Random;
+using namespace TEN::Math;
 
 namespace TEN::Entities::TR4
 {
-	const auto TroopsBite1 = BiteInfo(Vector3(0.0f, 300.0f, 64.0f), 7);
+	const auto TroopsBite1 = CreatureBiteInfo(Vector3i(0, 270, 40), 7);
 
 	enum TroopState
 	{
@@ -47,11 +47,11 @@ namespace TEN::Entities::TR4
 
 	};
 
-	void InitialiseTroops(short itemNumber)
+	void InitializeTroops(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		InitialiseCreature(itemNumber);
+		InitializeCreature(itemNumber);
 
 		if (item->TriggerFlags == 1)
 		{
@@ -64,7 +64,7 @@ namespace TEN::Entities::TR4
 			item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 12;
 		}
 
-		item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+		item->Animation.FrameNumber = GetAnimData(item).frameBase;
 	}
 
 	void TroopsControl(short itemNumber)
@@ -87,13 +87,8 @@ namespace TEN::Entities::TR4
 		int dy = 0;
 		int dz = 0;
 
-		if (creature->FiredWeapon)
-		{
-			auto pos = GetJointPosition(item, TroopsBite1.meshNum, Vector3i(TroopsBite1.Position));
-			TriggerDynamicLight(pos.x, pos.y, pos.z, 2 * creature->FiredWeapon + 8, 24, 16, 4);
-
-			creature->FiredWeapon--;
-		}
+		if (creature->MuzzleFlash[0].Delay != 0)
+			creature->MuzzleFlash[0].Delay--;
 
 		if (item->HitPoints <= 0)
 		{
@@ -109,9 +104,9 @@ namespace TEN::Entities::TR4
 						item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 23;
 
 						if (item->Animation.ActiveState == TROOP_STATE_ATTACKED_BY_SCORPION)
-							item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase + 37;
+							item->Animation.FrameNumber = GetAnimData(item).frameBase + 37;
 						else
-							item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+							item->Animation.FrameNumber = GetAnimData(item).frameBase;
 
 						item->Animation.ActiveState = TROOP_STATE_KILLED_BY_SCORPION;
 						item->Animation.TargetState = TROOP_STATE_KILLED_BY_SCORPION;
@@ -133,7 +128,7 @@ namespace TEN::Entities::TR4
 				{
 					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 19;
 					item->Animation.ActiveState = TROOP_STATE_DEATH;
-					item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+					item->Animation.FrameNumber = GetAnimData(item).frameBase;
 				}
 			}
 		}
@@ -197,7 +192,7 @@ namespace TEN::Entities::TR4
 			CreatureMood(item, &AI, false);
 
 			// Vehicle handling
-			if (Lara.Vehicle != NO_ITEM && AI.bite)
+			if (Lara.Context.Vehicle != NO_ITEM && AI.bite)
 				creature->Mood = MoodType::Escape;
 
 			angle = CreatureTurn(item, creature->MaxTurn);
@@ -229,7 +224,7 @@ namespace TEN::Entities::TR4
 				{
 					joint2 = AIGuard(creature);
 
-					// TODO: Use TestProbability().
+					// TODO: Use Random::TestProbability().
 					if (!GetRandomControl())
 					{
 						if (item->Animation.ActiveState == TROOP_STATE_IDLE)
@@ -249,7 +244,7 @@ namespace TEN::Entities::TR4
 				{
 					if (AI.distance < pow(SECTOR(3), 2) || AI.zoneNumber != AI.enemyZone)
 					{
-						if (TestProbability(0.5f))
+						if (Random::TestProbability(1 / 2.0f))
 							item->Animation.TargetState = TROOP_STATE_AIM_3;
 						else
 							item->Animation.TargetState = TROOP_STATE_AIM_1;
@@ -348,7 +343,7 @@ namespace TEN::Entities::TR4
 
 				if (item->AIBits & GUARD)
 				{
-					// TODO: Use TestProbability().
+					// TODO: Use Random::TestProbability().
 					joint2 = AIGuard(creature);
 					if (!GetRandomControl())
 						item->Animation.TargetState = TROOP_STATE_IDLE;
@@ -369,11 +364,14 @@ namespace TEN::Entities::TR4
 				}
 
 				if (creature->Flags)
+				{
 					creature->Flags--;
+				}
 				else
 				{
-					creature->FiredWeapon = 1;
 					ShotLara(item, &AI, TroopsBite1, joint0, 23);
+					creature->MuzzleFlash[0].Bite = TroopsBite1;
+					creature->MuzzleFlash[0].Delay = 2;
 					creature->Flags = 5;
 				}
 
@@ -428,11 +426,14 @@ namespace TEN::Entities::TR4
 				}
 
 				if (creature->Flags)
+				{
 					creature->Flags--;
+				}
 				else
 				{
-					creature->FiredWeapon = 1;
 					ShotLara(item, &AI, TroopsBite1, joint0, 23);
+					creature->MuzzleFlash[0].Bite = TroopsBite1;
+					creature->MuzzleFlash[0].Delay = 2;
 					creature->Flags = 5;
 				}
 
@@ -443,7 +444,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case TROOP_STATE_FLASHED:
-				if (!FlashGrenadeAftershockTimer && TestProbability(1.0f / 128))
+				if (!FlashGrenadeAftershockTimer && Random::TestProbability(1 / 128.0f))
 					item->Animation.TargetState = TROOP_STATE_GUARD;
 
 				break;
@@ -459,7 +460,7 @@ namespace TEN::Entities::TR4
 				{
 					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 28;
 					item->Animation.ActiveState = TROOP_STATE_FLASHED;
-					item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase + (GetRandomControl() & 7);
+					item->Animation.FrameNumber = GetAnimData(item).frameBase + (GetRandomControl() & 7);
 					creature->MaxTurn = 0;
 				}
 			}
